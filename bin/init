@@ -1,0 +1,27 @@
+#!/bin/bash
+
+load etc ami
+load etc $(basename $0)
+
+function init_svn() {
+	local d="$AMI_SVND"
+	[ -d "$d" ] || {
+		mkdir -p "$d" ;
+	}
+	for r in $SVN_REPOS; do
+		[ -d "$d/$r/.svn" ] || {
+			cd "$d" && svn checkout --depth=empty svn://$SVN_SERVER/$r ;
+		}
+	done
+}
+
+# main()
+case $1 in
+	-h)
+			echo "# '$AMI_PROG init *' is default"
+			echo "Usage: $AMI_PROG init [svn|git|aur]" ;;
+	svn)
+			init_svn ;;
+	*)
+			init_svn ;;
+esac

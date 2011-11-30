@@ -1,0 +1,4 @@
+# -*- mode: sh; eval: (sh-set-shell "bash") -*-
+
+SVN_SERVER=svn.archlinux.org
+SVN_REPOS="packages community"

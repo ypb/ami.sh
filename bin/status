@@ -1,6 +1,7 @@
 #!/bin/bash
 
 load etc ami
+load etc init # svn...
 
 function status_ami() {
 	local agitd="$AMI_MDIR/.git"
@@ -9,4 +10,28 @@ function status_ami() {
 	}
 }
 
-status_ami
+function status_svn() {
+	local d="$AMI_SVND"
+	for r in $SVN_REPOS; do
+		[ -d "$d/$r/.svn" ] && {
+			svn status -u "$d/$r" ;
+		}
+	done
+}
+
+# main()
+case $1 in
+	-h)
+			echo "# '$AMI_PROG status ami' is default"
+			echo "Usage: $AMI_PROG status [ami|svn|all]" ;;
+	all)
+			status_ami
+			status_svn
+			;;
+	ami)
+			status_ami ;;
+	svn)
+			status_svn ;;
+	*)
+			status_ami ;;
+esac
