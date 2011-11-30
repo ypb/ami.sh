@@ -1,0 +1,64 @@
+#!/bin/bash
+
+load etc ami
+load etc aur # AUR_CMD
+
+# somethin about duplicates... overkill.?o_0?.
+function aur_dup() {
+	test -f $2 || { mv $1 $2; return; }
+	local md2=$(md5sum $2 | cut -f1 -d' ')
+	local md1=$(md5sum $1 | cut -f1 -d' ')
+	[ "$md2" = "$md1" ] &&
+		{ echo $1 dupes $2; mv $1 $2,dup; } ||
+		{ md5sum $1 $2; echo $1 CONFLICTS $2; return 1; }
+}
+
+# while getting move to "versioned" tar.gz if already present
+function aur_ver() {
+	local tempf=/tmp/aur_ver-PKGBUILD-$1-$(date +%T)
+	tar xzf $1.tar.gz $1/PKGBUILD -O > $tempf || { rm -rf $tempf; return 1; }
+	local ver=$(sed -n 's/^[[:space:]]*pkgver[[:space:]]*=[[:space:]]*//p' $tempf | \
+		tr -s ' ')
+	local rel=$(sed -n 's/^[[:space:]]*pkgrel[[:space:]]*=[[:space:]]*//p' $tempf | \
+		tr -s ' ')
+	rm -rf $tempf;
+	aur_dup $1.tar.gz $1-$ver-$rel.tar.gz
+}
+
+# get pkg
+function aur_get() {
+	local d="$AMI_AURD/$1"
+	mkdir -p $d && cd $d || die 1 "aur_get() cd $d failure"
+	[ -f $1.tar.gz ] && { aur_ver $1 || { cd -; return 1; } }
+	md5sum $1*.tar.gz* 2>/dev/null || echo "$1 IS-not"
+	[ -f $1.tar.gz ] && { echo "$1 NOT-versioned"; cd -; exit 1; } ||
+	  $AUR_CMD $1
+# TOFIX... creates empty $dirs... even if...
+	[ $(ls | wc -l) = "0" ] && cd - 2>/dev/null 1>&2 && rmdir $d
+}
+
+# gets manu packagos
+function aur_gets() {
+	[ -z "$1" ] && aur_usage && return
+	for p in $*; do
+		aur_get $p
+	done
+}
+
+function aur_usage() {
+	echo "# '$AMI_PROG aur get <pkg>s?' is default"
+	echo "Usage: $AMI_PROG aur [get]"
+}
+
+# main()
+case $1 in
+	-h)
+			aur_usage ;;
+# in truth it might be called update... for consistency sake?!?
+	get)
+			shift
+			aur_gets $* ;;
+	*)
+			# damn duplicity... olmoust...
+			aur_gets $* ;;
+esac
