@@ -30,15 +30,24 @@ function status_git() {
 	}
 }
 
+function status_aur() {
+	local d="$AMI_AURD"
+	local p=${1:-*}
+	[ -d "$d" ] && {
+		echo "# $AMI_PROG status aur $p";
+		cd $d && ls -d1 $p/* 2>/dev/null ; }
+}
+
 # main()
 case $1 in
 	-h)
 			echo "# '$AMI_PROG status ami&git' is default"
-			echo "Usage: $AMI_PROG status [ami|svn|git|all]" ;;
+			echo "Usage: $AMI_PROG status [ami|svn|git|aur [pkg]|all]" ;;
 	all)
 			status_ami
 			status_svn
 			status_git
+			status_aur
 			;;
 	ami)
 			status_ami ;;
@@ -46,6 +55,9 @@ case $1 in
 			status_svn ;;
 	git)
 			status_git ;;
+	aur)
+			shift
+			status_aur $* ;;
 	*)
 			status_ami
 			status_git ;;
