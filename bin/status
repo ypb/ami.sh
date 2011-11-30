@@ -6,12 +6,14 @@ load etc init # svn...
 function status_ami() {
 	local agitd="$AMI_MDIR/.git"
 	[ -d "$agitd" ] && {
+		echo "# $AMI_PROG status ami"
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" git status -v ;
 	}
 }
 
 function status_svn() {
 	local d="$AMI_SVND"
+	[ -d "$d" ] && echo "# $AMI_PROG status svn"
 	for r in $SVN_REPOS; do
 		[ -d "$d/$r/.svn" ] && {
 			svn status -u "$d/$r" ;
@@ -22,6 +24,7 @@ function status_svn() {
 function status_git() {
 	local agitd="$AMI_GITD/.git"
 	[ -d "$agitd" ] && {
+		echo "# $AMI_PROG status git"
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git branch -v ;
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -v ;
 	}
