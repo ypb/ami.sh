@@ -1,0 +1,12 @@
+#!/bin/bash
+
+load etc ami
+
+function status_ami() {
+	local agitd="$AMI_MDIR/.git"
+	[ -d "$agitd" ] && {
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" git status -v ;
+	}
+}
+
+status_ami

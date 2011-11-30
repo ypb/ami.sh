@@ -49,4 +49,7 @@ case $1 in
 		runcmd "$@" ;;
 esac
 
-[ $AMI_DBG -eq 1 ] && echo "## ar<$@>gs #"
+[ $AMI_DBG -eq 1 ] && {
+	echo "## ar<$@>gs ##" ;
+	echo "## pd<$(pwd)>d ##" ;
+}
