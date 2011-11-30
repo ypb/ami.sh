@@ -1,13 +1,13 @@
 # -*- mode: sh; eval: (sh-set-shell "bash") -*-
 
-# main entry program from PATH exports four variables:
+# main entry program from PATH exports three variables:
 # AMI - "desymlinked" path to itself
 # AMI_PROG=$(basename "$0") - what it was run as (for usage() and such)
 # AMI_MDIR=$(dirname "$AMI") - main dir of all the etc/bin/lib/var goodies
 # the rest should be resourced here...
 
-# config dir, autorelatife...
-AMI_ETCD=$(dirname $1)
+# config dir, autorelatife... & regretable export ;(
+export AMI_ETCD=$(dirname $1)
 # path to individual <cmd> scripts
 AMI_CMDP="$AMI_MDIR/bin"
 # ROOT aka $AMI_MDIR/..

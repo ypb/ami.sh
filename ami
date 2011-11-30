@@ -17,54 +17,36 @@ export AMI
 export AMI_PROG=$(basename "$0")
 export AMI_MDIR=$(dirname "$AMI")
 
+# load config
 AMI_CONF="$AMI_MDIR/etc/ami"
 [ -f "$AMI_CONF" ] && . "$AMI_CONF" "$AMI_CONF" || { echo "$AMI_PROG: no $AMI_CONF config file found" >&2; exit 1; }
 
-function settings() {
-	for v in AMI AMI_PROG AMI_MDIR AMI_ETCD AMI_LIBD AMI_CMDP AMI_ROOT AMI_GITD AMI_SVND AMI_AURD; do
-		echo "# $v = "$(eval echo \$$v);
-	done
-}
+# load library
+AMI_LIBF="$AMI_MDIR/lib/ami"
+[ -f "$AMI_LIBF" ] && . "$AMI_LIBF" "$AMI_LIBF" || { echo "$AMI_PROG: no $AMI_LIBF lib file found" >&2; exit 1; }
 
+# DEBUG(for now)
+export AMI_DBG=${AMI_DBG:-1}
 settings
 export -f settings
 
-function die() {
-	echo "$2";
-	exit $1;
-}
+# not sure about that...
+[ -n "$AMI_ROOT" ] && {
+	cd "$AMI_ROOT" || die 1 "cd $AMI_ROOT failure" ;
+	} || {
+	die 1 "AMI_ROOT not set" ;
+	}
 
-function mkdirz() {
-	for d in $GITD $SVND $AURD; do
-		mkdir -p $d || die 1 "mkdirz init failure"
-	done
-}
-
-cd "$ROOT" || die 1 "cd $ROOT failure"
-
-function usage() {
-	local prog=$(basename $0)
-	echo "# '$prog cmds' to list available <cmd>s"
-	die 3 "Usage: $prog [OPTS] <cmd> [OPTS] [ARGS]"
-#	exit 3 #erm...
-}
-
+# bail if nothing to do...
 [ $# -eq 0 ] && usage
 
-function run() {
-	local cmd=$1
-	shift
-	bash "$CMDP/$cmd" "$@"
-}
-
-mkdirz
-
+# main()
 case $1 in
 	cmds)
-		ls -1 "$CMDP" ;;
+		cmds ;;
 	*)
-		echo "## cmd: '$1' ##"
-		run "$@" ;;
+		[ $AMI_DBG -eq 1 ] && echo "## cmd: '$1' ##"
+		runcmd "$@" ;;
 esac
 
-echo "# ar<$@>gs #"
+[ $AMI_DBG -eq 1 ] && echo "## ar<$@>gs #"

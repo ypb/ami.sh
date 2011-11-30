@@ -1,7 +1,11 @@
 #!/bin/bash
 
+load etc ami
 settings
+load lib ami # runcmd...
+load lib $(basename $0)
 
-for a in "$@"; do
-	echo "\"$a\"";
-done
+#runcmd init
+
+dbgargs "$@"
+

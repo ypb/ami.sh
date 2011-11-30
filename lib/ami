@@ -1,0 +1,73 @@
+# -*- mode: sh; eval: (sh-set-shell "bash") -*-
+
+# library dir, autorelatife... like in $AMI_ETCD/ami
+export AMI_LIBD=$(dirname $1)
+
+# the usual
+function die() {
+	echo "$2";
+	exit $1;
+}
+
+# itsybitsy de bugging
+function settings() {
+	[ $AMI_DBG -eq 1 ] && {
+		for v in AMI AMI_PROG AMI_MDIR AMI_ETCD AMI_LIBD AMI_CMDP AMI_ROOT AMI_GITD AMI_SVND AMI_AURD; do
+			echo "## $v = "$(eval echo \$$v);
+		done
+	}
+}
+
+##export -f settings
+
+function usage() {
+	echo "# '$AMI_PROG cmds' to list available <cmd>s"
+	die 3 "Usage: $AMI_PROG [OPTS] <cmd> [OPTS] [ARGS]"
+}
+
+# trivial
+function cmds() {
+	ls -1 "$AMI_CMDP"
+}
+
+function runcmd() {
+	local cmd=$1
+	shift
+	bash "$AMI_CMDP/$cmd" "$@"
+}
+
+function load() {
+	local path
+	[ $AMI_DBG -eq 1 ] && echo "## load() $*" >&2
+	case $1 in
+		etc)
+			path=$AMI_ETCD ;;
+		lib)
+			path=$AMI_LIBD ;;
+		*)
+			return ;;
+	esac
+	shift
+	[ -z "$1" ] && return
+	path=$path/$1
+	[ -f "$path" ] && { echo "# load() $path" >&2 && . $path $path; }
+}
+
+# lulz
+export -f load
+
+function dbgargs() {
+	[ $AMI_DBG -eq 1 ] && {
+		for a in "$@"; do
+			echo "## \"$a\"";
+		done
+	}
+}
+
+
+# naaah...
+function mkdirz() {
+	for d in $AMI_GITD $AMI_SVND $AMI_AURD; do
+		mkdir -p $d || die 1 "mkdirz init failure"
+	done
+}
