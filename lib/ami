@@ -50,7 +50,9 @@ function load() {
 	shift
 	[ -z "$1" ] && return
 	path=$path/$1
-	[ -f "$path" ] && { echo "# load() $path" >&2 && . $path $path; }
+	[ -f "$path" ] && {
+		{ [ $AMI_DBG -eq 1 ] && echo "# load() $path" >&2 || true ; } && \
+			. $path $path; }
 }
 
 # lulz

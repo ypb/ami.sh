@@ -22,6 +22,7 @@ function status_svn() {
 function status_git() {
 	local agitd="$AMI_GITD/.git"
 	[ -d "$agitd" ] && {
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git branch -v ;
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -v ;
 	}
 }

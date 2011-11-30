@@ -41,15 +41,18 @@ export -f settings
 [ $# -eq 0 ] && usage
 
 # main()
+[ $AMI_DBG -eq 1 ] && echo "## cmd: '$1' ##"
 case $1 in
 	cmds)
 		cmds ;;
+	init)
+		runcmd init ;;
 	*)
-		[ $AMI_DBG -eq 1 ] && echo "## cmd: '$1' ##"
+		runcmd init
 		runcmd "$@" ;;
 esac
 
 [ $AMI_DBG -eq 1 ] && {
 	echo "## ar<$@>gs ##" ;
-	echo "## pd<$(pwd)>d ##" ;
+	echo "## pw<$(pwd)>d ##" ;
 } || true

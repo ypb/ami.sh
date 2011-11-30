@@ -27,6 +27,13 @@ function init_git() {
 	}
 }
 
+function init_aur() {
+	local d="$AMI_AURD"
+	[ -d "$d" ] || {
+		mkdir -p "$d" ;
+	}
+}
+
 # main()
 case $1 in
 	-h)
@@ -36,7 +43,10 @@ case $1 in
 			init_svn ;;
 	git)
 			init_git ;;
+	aur)
+			init_aur ;;
 	*)
 			init_svn
-			init_git ;;
+			init_git
+			init_aur ;;
 esac
