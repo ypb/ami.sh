@@ -9,12 +9,14 @@ dbgargs "$@"
 
 function import_aur() {
 	echo "via AUR"
+	echo "AUR import not really implemented YET"
 	runcmd aur get $pkg
 }
 # NOT nice $pkg global...
 function import_svn() {
 	echo "via Arch Linux SVN"
-	echo "SVN import not implemented YET"
+	echo "SVN import not really implemented YET"
+	runcmd svn get $pkg
 }
 
 function import() {

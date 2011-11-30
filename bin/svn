@@ -1,0 +1,38 @@
+#!/bin/bash
+
+load etc ami
+load etc init # SVN_
+
+function svn_get() {
+	local d="$AMI_SVND"
+	for r in $SVN_REPOS; do
+		[ -d "$d/$r/.svn" ] && {
+			echo "# $AMI_PROG svn get $r/$1";
+			cd "$d/$r" && svn update $1 ;
+		}
+	done
+}
+
+function svn_gets() {
+	[ -z "$1" ] && svn_usage && return
+	for p in $*; do
+		svn_get $p
+	done
+}
+
+function svn_usage() {
+	echo "# '$AMI_PROG svn get <pkg>' is default"
+	echo "Usage: $AMI_PROG svn [get]"
+}
+
+# main()
+case $1 in
+	-h)
+			svn_usage ;;
+	get)
+			shift
+			svn_gets $* ;;
+	*)
+			# damn duplicity... olmoust...
+			svn_gets $* ;;
+esac
