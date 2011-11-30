@@ -2,3 +2,8 @@
 
 SVN_SERVER=svn.archlinux.org
 SVN_REPOS="packages community"
+
+# initial "pkg" branch directory
+PKG_BDIR=pkg
+# const file to seed initial commit on "pkg" branch
+PKG_README="$AMI_MDIR/share/pkg.README.md"

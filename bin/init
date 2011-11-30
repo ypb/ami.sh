@@ -15,6 +15,18 @@ function init_svn() {
 	done
 }
 
+function init_git() {
+	local d="$AMI_GITD"
+	[ -d "$d" ] || {
+		mkdir -p "$d" ;
+	}
+	[ -d "$d/.git" ] || {
+		cd "$d" && git init && \
+			mkdir $PKG_BDIR && cp $PKG_README $PKG_BDIR/README.md && \
+			git add . && git commit -m "NULL" && git branch -m master pkg ;
+	}
+}
+
 # main()
 case $1 in
 	-h)
@@ -22,6 +34,9 @@ case $1 in
 			echo "Usage: $AMI_PROG init [svn|git|aur]" ;;
 	svn)
 			init_svn ;;
+	git)
+			init_git ;;
 	*)
-			init_svn ;;
+			init_svn
+			init_git ;;
 esac

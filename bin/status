@@ -19,19 +19,30 @@ function status_svn() {
 	done
 }
 
+function status_git() {
+	local agitd="$AMI_GITD/.git"
+	[ -d "$agitd" ] && {
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -v ;
+	}
+}
+
 # main()
 case $1 in
 	-h)
-			echo "# '$AMI_PROG status ami' is default"
-			echo "Usage: $AMI_PROG status [ami|svn|all]" ;;
+			echo "# '$AMI_PROG status ami&git' is default"
+			echo "Usage: $AMI_PROG status [ami|svn|git|all]" ;;
 	all)
 			status_ami
 			status_svn
+			status_git
 			;;
 	ami)
 			status_ami ;;
 	svn)
 			status_svn ;;
+	git)
+			status_git ;;
 	*)
-			status_ami ;;
+			status_ami
+			status_git ;;
 esac
