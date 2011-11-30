@@ -30,6 +30,7 @@ export AMI_DBG=${AMI_DBG:-1}
 settings
 export -f settings
 
+export AMI_CWD=$(pwd)
 # not sure about that...
 [ -n "$AMI_ROOT" ] && {
 	cd "$AMI_ROOT" || die 1 "cd $AMI_ROOT failure" ;
@@ -46,7 +47,8 @@ case $1 in
 	cmds)
 		cmds ;;
 	init)
-		runcmd init ;;
+		shift
+		runcmd init $* ;;
 	*)
 		runcmd init
 		runcmd "$@" ;;

@@ -34,17 +34,35 @@ function init_aur() {
 	}
 }
 
+function init_pkg() {
+	local d="$PCM_SHARE"
+	[ "$1" = "list" ] && {
+		shift
+		local o=${1:--1}
+		cd $d && ls $o PKGBUILD.proto PKGBUILD-*.proto
+		return
+	}
+	local p=$([ -z "$1" ] && echo PKGBUILD || echo PKGBUILD-$1)
+	# that's too ob-scyooree...
+#	echo $AMI_CWD $(pwd)
+	cd $AMI_CWD && cp -i $d/$p.proto PKGBUILD
+#	echo "WTF($d/$p)"
+}
+
 # main()
 case $1 in
 	-h)
-			echo "# '$AMI_PROG init *' is default"
-			echo "Usage: $AMI_PROG init [svn|git|aur]" ;;
+			echo "# '$AMI_PROG init *&~pkg' is default"
+			echo "Usage: $AMI_PROG init [svn|git|aur|pkg]" ;;
 	svn)
 			init_svn ;;
 	git)
 			init_git ;;
 	aur)
 			init_aur ;;
+	pkg)
+			shift
+			init_pkg $* ;;
 	*)
 			init_svn
 			init_git

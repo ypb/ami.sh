@@ -7,3 +7,6 @@ SVN_REPOS="packages community"
 PKG_BDIR=pkg
 # const file to seed initial commit on "pkg" branch
 PKG_README="$AMI_MDIR/share/pkg.README.md"
+
+# init pkg with PKGBUILD{,-*}.proto file
+PCM_SHARE=/usr/share/pacman
