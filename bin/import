@@ -5,7 +5,44 @@ settings
 load lib ami # runcmd...
 load lib $(basename $0)
 
-#runcmd init
-
 dbgargs "$@"
 
+function import_aur() {
+	echo "via AUR"
+	runcmd aur get $pkg
+}
+# NOT nice $pkg global...
+function import_svn() {
+	echo "via Arch Linux SVN"
+	echo "SVN import not implemented YET"
+}
+
+function import() {
+	echo -n "# importing $pkg "
+	case $1 in
+		aur)
+			import_aur ;;
+		svn)
+			import_svn ;;
+		*)
+			import_aur ;;
+	esac
+}
+
+function import_usage() {
+	echo "# '$AMI_PROG import <pkg> aur' is default"
+	echo "Usage: $AMI_PROG import <pkg> [svn|aur]"
+}
+
+# main()
+case $1 in
+	-h)
+			import_usage ;;
+	*)
+			pkg=$1
+			shift
+			[ -n "$pkg" ] &&
+				{ import $* ; } ||
+				import_usage
+			;;
+esac

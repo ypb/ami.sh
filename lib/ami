@@ -33,6 +33,7 @@ function cmds() {
 function runcmd() {
 	local cmd=$1
 	shift
+	[ $AMI_DBG -eq 1 ] && echo "## runcmd() $cmd $*" >&2
 	bash "$AMI_CMDP/$cmd" "$@"
 }
 
