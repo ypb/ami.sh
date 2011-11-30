@@ -1,0 +1,21 @@
+# -*- mode: sh; eval: (sh-set-shell "bash") -*-
+
+# main entry program from PATH exports four variables:
+# AMI - "desymlinked" path to itself
+# AMI_PROG=$(basename "$0") - what it was run as (for usage() and such)
+# AMI_MDIR=$(dirname "$AMI") - main dir of all the etc/bin/lib/var goodies
+# the rest should be resourced here...
+
+# config dir, autorelatife...
+AMI_ETCD=$(dirname $1)
+# path to individual <cmd> scripts
+AMI_CMDP="$AMI_MDIR/bin"
+# ROOT aka $AMI_MDIR/..
+AMI_ROOT=$(dirname "$AMI_MDIR")
+
+# git repo used to store PKGBUILD files' history
+AMI_GITD="$AMI_ROOT/PKGBUILDs.git"
+# dir of selective 'svn co' of main distro's PKGBUILDs
+AMI_SVND="$AMI_ROOT/ArchLinux.svn"
+# TEMP dir used to keep in sync with PKGBUILDs from AUR
+AMI_AURD="$AMI_ROOT/AUR.files.tmp"

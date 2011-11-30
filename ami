@@ -1,28 +1,27 @@
 #!/bin/bash
 
-PRGN="$0"
+AMI="$0"
 
-while [ -h "$PRGN" ]; do
-  ls=$(ls -ld "$PRGN")
+while [ -h "$AMI" ]; do
+  ls=$(ls -ld "$AMI")
   link=$(expr "$ls" : '.*-> \(.*\)$')
   if expr "$link" : '/.*' > /dev/null; then
-    PRGN="$link"
+    AMI="$link"
   else
-    PRGN=$(dirname "$PRGN")/"$link"
+    AMI=$(dirname "$AMI")/"$link"
   fi
 done
 
-export PRGN
-export DIRN=$(dirname "$PRGN")
-CMDP="$DIRN/bin"
-export ROOT=$(dirname "$DIRN")
-#R00T=$(dirname "$DIRN/..")
-export GITD="$ROOT/git"
-export SVND="$ROOT/svn"
-export AURD="$ROOT/aur"
+# etched in the stone...
+export AMI
+export AMI_PROG=$(basename "$0")
+export AMI_MDIR=$(dirname "$AMI")
+
+AMI_CONF="$AMI_MDIR/etc/ami"
+[ -f "$AMI_CONF" ] && . "$AMI_CONF" "$AMI_CONF" || { echo "$AMI_PROG: no $AMI_CONF config file found" >&2; exit 1; }
 
 function settings() {
-	for v in PRGN DIRN CMDP ROOT GITD SVND AURD; do
+	for v in AMI AMI_PROG AMI_MDIR AMI_ETCD AMI_LIBD AMI_CMDP AMI_ROOT AMI_GITD AMI_SVND AMI_AURD; do
 		echo "# $v = "$(eval echo \$$v);
 	done
 }
