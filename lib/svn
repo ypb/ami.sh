@@ -177,7 +177,7 @@ function prnsomerevs() {
 	done
 }
 
-
+### "fast" importing or at least a start ova
 
 # svn_export_rev repo pkg rev
 function svn_export_rev() {
@@ -195,3 +195,91 @@ function svn_export_rev() {
 	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
 	[ $? -eq 0 ] && echo "$todir" || echo "";
 }
+
+function writing-fi-files() {
+	local -i mark=$1
+	local pkg=$2
+	local idx=${index[$3]}
+	local rev=${rdata[$idx]}
+	local -i linezoff=${rdata[$(($idx+3))]}
+	local -i msgbytes=${rdata[$(($idx+4+$linezoff))]}
+	local file=$4
+	local afile=$file-admin
+	local bfile=$file-blobs
+	local repo=$5
+	local FILES
+	local expdir
+	local commie
+
+	{
+		echo "progress Creating rev $rev";
+		echo "commit refs/heads/pkg/$pkg";
+		echo "mark :$mark";
+		commit=$mark;
+		mark+=1;
+		commie=${rdata[$(($idx+1))]}
+		echo "committer $commie <$commie AT svn> ${rdata[$(($idx+2))]}";
+		echo "data $msgbytes";
+		# print logmsg
+		local -i i=1
+		while [ $i -le $linezoff ]; do
+			echo "${rdata[$(($idx+3+$i))]}";
+			i+=1;
+		done
+		echo "deleteall";
+		# here goes the filelist and BLOBing...
+		expdir=$pkg/$repo/r$rev
+		FILES=($(find "$expdir" -type f))
+		# echo "M 644 :$mark FILEZ";
+		for f in ${FILES[@]}; do
+			{
+				echo "progress Importing $f";
+				echo "blob";
+				echo "mark :$mark";
+
+				echo "data "$(stat -c %s "$f");
+				cat "$f";
+			} >> $bfile
+			# boolbool
+			echo "M "$(stat -c %a "$f")" :$mark "$(echo "$f" | sed "s,/r$rev/,/,g;s,/$repo/,/,g;s,/repos/,/,g;s,/trunk/,/$repo/,g");
+			mark+=1;
+		done
+		echo
+	 } > $afile
+	cat $bfile $afile >> $file
+	rm -f $bfile $afile
+	echo "$commit $mark"
+}
+
+# going down...
+function fast-import() {
+	local repo=$1
+	local pkg=$2
+	local -i l=${#index[*]}
+	local -i i=$(($l-1))
+	local -i mark=1
+	local -i revi
+	local -i revision=0
+	commit=0
+	while [ $i -ge 0 ]; do
+		revi=${index[$i]};
+		revision=${rdata[$revi]};
+		svn_export_rev $repo $pkg $revision;
+		ret=$(writing-fi-files $mark $pkg $i $pkg/fast-imps $repo);
+		# silly...
+		commit=$(echo $ret | sed 's/ .*$//g');
+		mark=$(echo $ret | sed 's/^[^ ]* //g');
+		i=$(($i-1));
+	done
+	[ $revision -gt 0 ] && {
+		tagname="$pkg-$repo-r$revision"
+		echo "progress Creating tag '$tagname'";
+		# hmmm...
+		echo "tag $tagname";
+		echo "from :$commit";
+		echo "tagger ami.sh <$USER AT $HOSTNAME> "$(date);
+		echo "data 0";
+	} >> $pkg/fast-imps
+}
+
+# cat log_file | proc | collect fast-import community tix fi-file

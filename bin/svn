@@ -36,7 +36,7 @@ function svn_get_logs() {
 			# but what convention if we choose to $(use) it $pkg-$repo-log (see lib/svn:svn_log)
 			echo "$log_file";
 			# TODO here we could use autolimiting on the svn_proc_log since ~10 is a screenful already and on svn_import we can turn off limiting.
-			cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2;
+			cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2 >&2;
 			true # awkward
 		} || {
 			echo "# $r/$1 log_file($log_file) empty (hmmmm)" >&2;
@@ -44,9 +44,24 @@ function svn_get_logs() {
 	done
 }
 
+function svn_gen_fi() {
+	[ -z "$1" ] && svn_usage && return
+	local pkg=$1
+	local log_filez
+	cd $AMI_CWD
+	log_filez=$(svn_get_logs $pkg)
+	for f in $log_filez ; do
+		# tofix, sillidiadem
+		repo=$(echo $f | sed "s,-log,,g;s,$pkg-,,g")
+		echo "# svn_gen_fi() repo($repo) pkg($pkg)" >&2;
+		cat $f | svn_proc_log | svn_collect_log fast-import $repo $pkg
+		# && cd $AMI_GITD && cat /home/ypb/src/AMI/ami/tmp/tix/fast-imps | git fast-import --date-format=rfc2822 # anywayz
+	done
+}
+
 function svn_usage() {
 	echo "# '$AMI_PROG svn get <pkg>' is default"
-	echo "Usage: $AMI_PROG svn [get|log]"
+	echo "Usage: $AMI_PROG svn [get|log|import] <pkg>"
 }
 
 # main()
@@ -59,6 +74,9 @@ case $1 in
 	log)
 			shift
 			svn_get_logs $* ;;
+	import)
+			shift
+			svn_gen_fi $* ;;
 	*)
 			# damn duplicity... olmoust...
 			svn_gets $* ;;
