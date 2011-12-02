@@ -1,0 +1,197 @@
+# -*- mode: sh; eval: (sh-set-shell "bash") -*-
+
+# svn_log repo pkg
+function svn_log() {
+	[ -z $SVN_SERVER ] && die 128 "svn_log() SVN_SERVER not set";
+	local srv=$SVN_SERVER
+	[ -z $1 ] && echo "# svn_log() defaulting to 'packages' repo" >&2;
+	local repo=${1:-packages}
+	[ -z $2 ] && echo "# svn_log() defaulting to 'pacman' pkg" >&2;
+	local pkg=${2:-pacman}
+	# not to HOT a name as far as demangling it back goes...
+	local tofile="$pkg-$repo-log"
+	# echo svn log svn://$srv/$repo $pkg >&2
+	[ -f "$tofile" ] &&
+	  echo "# svn_log() $tofile already present" >&2 ||
+	  svn log svn://$srv/$repo $pkg > "$tofile";
+# svn return 0 too even on fail?...
+	[ $? -eq 0 ] && echo "$tofile" || { rm -f "$tofile"; echo ""; }
+}
+
+### TODO: investigate this damn scope and why we had to move it to
+### collect() when . sourcing... MEH
+
+# (0:rev 1:author 2:date 3:msglinenum 4:msgline1 5:msgline2 ... N-1:msgbytes N:rev ...)
+declare -a rdata=()
+declare -i didx=0
+declare -a index=()
+declare -i iidx=0
+# no can doop... subshelling in while ruins everything (BLEH[tm])
+
+# cat $(svn_log repo pkg) | svn_proc_log | svn_collect_log with_fun_name args
+function svn_proc_log() {
+	local -i in=0
+	local -i msgchars=0
+	while read ; do
+		# omit starting *dashed* line delim
+		[ $in -eq 0 ] && echo "$REPLY" | grep -q -- "^-\+$" && continue
+		# check for rev heading; process if so...
+		echo "$REPLY" | grep -q '^r[[:digit:]]* |.*' && {
+			in=1;
+			echo "$REPLY" | sed 's/ | /\n/g';
+			continue;
+		}
+		# skip first blank in msg...
+		[ $in -eq 1 ] && echo "$REPLY" | grep -q "^$" && {
+			in=2;
+			continue;
+		}
+		# treat log msg...
+		[ $in -eq 2 ] && echo "$REPLY" | grep -q -- "^-\+$" || {
+			# echo "PASSING: \"$REPLY\"" >&2
+			echo "$REPLY";
+			msgchars+=$(echo "$REPLY" | wc -c)
+			continue;
+		}
+		# not counting "Last Feed"
+		echo "commit_msg_byte_length     "$([ $msgchars -gt 0 ] && echo $(($msgchars-1)) || echo 0);
+		msgchars=0;
+		# else restart search
+		## echo "($in)restarting $iidx $didx ${#index[*]} ${#rdata[*]}" >&2
+		in=0;
+		# irrelavent
+		## iidx+=1;
+	done
+}
+### SLOW AS HELL ###
+function svn_collect_log() {
+	declare -a rdata=()
+	declare -i didx=0
+	declare -a index=()
+	declare -i iidx=0
+	while read; do
+		### echo -n "collect: " >&2;
+		echo "$REPLY" | grep -q '^r[[:digit:]]*$' && {
+			rdata[${didx}]=$(echo "$REPLY" | sed 's/^r//g');
+			index[${iidx}]=${didx};
+			iidx+=1;
+			} || {
+			echo "$REPLY" | grep -q '^[[:digit:]]* line.*$' && {
+				rdata[${didx}]=$(echo "$REPLY" | sed 's/ line.*//g');
+				}
+			} || {
+			# LOL
+			echo "$REPLY" | grep -q '^commit_msg_byte_length     [[:digit:]]*$' && {
+				rdata[${didx}]=$(echo "$REPLY" | sed 's/^commit_msg_byte_length     //g');
+				}
+			} || {
+			rdata[${didx}]="$REPLY";
+			} # || { ... perhaps ignore more ...
+		### echo $iidx $didx >&2;
+	didx=$(($didx+1));	
+	### echo "\"${index[$(($iidx-1))]}\" \"${rdata[$(($didx-4))]}\" \"${rdata[$(($didx-3))]}\" \"${rdata[$(($didx-2))]}\" \"${rdata[$(($didx-1))]}\"" >&2;
+	done
+# fuck
+	$@
+}
+
+## recreating log back (for testing)...
+# separatour
+function prnrevsep() {
+	# damn slow, butt
+	local -i len=72
+	local -i i=0
+	while [ $i -lt $len ]; do
+		echo -n "-";
+		i+=1;
+	done
+	echo
+}
+# print one rev byte for byte...
+function prntrev() {
+	[ -z $1 ] && return
+	local -i rev=$1
+	local -i len=${#index[*]}
+	local -i start=${index[$rev]}
+	rev+=1
+	local -i end
+	[ $rev -eq $len -o $rev -eq 0 ] && {
+		end=${#rdata[*]} ; } ||
+	end=${index[$rev]}
+
+	end=$(($end-1))
+	if [ $start -lt $end ]; then
+		echo -n "r";
+	local -i eek=0
+	while [ $start -lt $end ]; do
+		case $eek in
+			0|1|2)
+				echo -n "${rdata[$start]} | " ;;
+			3)
+				[ "${rdata[$start]}" = "1" ] &&
+				echo "${rdata[$start]} line" ||
+				echo "${rdata[$start]} lines" ;
+				echo ;;
+			*)
+				echo "${rdata[$start]}" ;;
+		esac
+		eek+=1;
+		start+=1;
+	done
+	prnrevsep
+	fi
+}
+# print all revs
+function prnallrevs() {
+	local -i i=0
+	local -i l=${#index[*]}
+	[ $l -gt 0 ] && prnrevsep
+	while [ $i -lt $l ]; do
+		prntrev $i;
+		i+=1;
+	done
+}
+# print all revs reversed order
+function prnallrevsrevs() {
+	local -i l=${#index[*]}
+	local -i i=$(($l-1))
+	[ $l -gt 0 ] && prnrevsep
+	while [ $i -ge 0 ]; do
+		prntrev $i;
+		i=$(($i-1));
+	done
+}
+# print recent/or/first N (minus is from the start or r1)
+function prnsomerevs() {
+	local -i l=${#index[*]}
+	local -i N=${1:-5}
+	[ $N -gt 0 -a $N -gt $l ] && N=$l
+	[ $N -eq 0 ] && N=$l
+	[ $N -lt 0 -a $N -lt -$l ] && N=-$l
+# no nie wiem...
+	local s=$([ $N -gt 0 ] && seq 0 1 $(($N-1)) || seq -1 -1 $N)
+	prnrevsep
+	for i in $s; do
+		# echo "N=$i"
+		prntrev $i;
+	done
+}
+
+
+
+# svn_export_rev repo pkg rev
+function svn_export_rev() {
+	[ -z $SVN_SERVER ] && die 128 "svn_export_rev() SVN_SERVER not set";
+	local srv=$SVN_SERVER
+	[ -z $1 ] && echo "# svn_export_rev() defaulting to 'packages' repo" >&2;
+	local repo=${1:-packages}
+	[ -z $2 ] && echo "# svn_export_rev() defaulting to 'pacman' pkg" >&2;
+	local pkg=${2:-pacman}
+	[ -z $3 ] && echo "# svn_export_rev() defaulting to SVN r1" >&2;
+	local rev=${3:-1}
+	local todir="$pkg/$repo/r$rev"
+	[ -d "$todir" ] &&
+	  echo "# svn_export_rev() $todir already present" >&2 ||
+	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
+	[ $? -eq 0 ] && echo "$todir" || echo "";
+}

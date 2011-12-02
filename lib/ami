@@ -5,7 +5,7 @@ export AMI_LIBD=$(dirname $1)
 
 # the usual
 function die() {
-	echo "$2";
+	echo "$2" >&2;
 	exit $1;
 }
 

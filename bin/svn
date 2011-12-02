@@ -2,6 +2,7 @@
 
 load etc ami
 load etc init # SVN_
+load lib svn
 
 function svn_get() {
 	local d="$AMI_SVND"
@@ -20,9 +21,32 @@ function svn_gets() {
 	done
 }
 
+function svn_get_logs() {
+	[ -z "$1" ] && svn_usage && return
+	local log_file
+	# investigate this
+	for n in rdata didx index iidx; do
+		type -t $n;
+	done
+	# trash da place
+	cd $AMI_CWD
+	for r in $SVN_REPOS; do
+		log_file=$(svn_log $r $1)
+		[ -s "$log_file" ] && {
+			# but what convention if we choose to $(use) it $pkg-$repo-log (see lib/svn:svn_log)
+			echo "$log_file";
+			# TODO here we could use autolimiting on the svn_proc_log since ~10 is a screenful already and on svn_import we can turn off limiting.
+			cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2;
+			true # awkward
+		} || {
+			echo "# $r/$1 log_file($log_file) empty (hmmmm)" >&2;
+		}
+	done
+}
+
 function svn_usage() {
 	echo "# '$AMI_PROG svn get <pkg>' is default"
-	echo "Usage: $AMI_PROG svn [get]"
+	echo "Usage: $AMI_PROG svn [get|log]"
 }
 
 # main()
@@ -32,6 +56,9 @@ case $1 in
 	get)
 			shift
 			svn_gets $* ;;
+	log)
+			shift
+			svn_get_logs $* ;;
 	*)
 			# damn duplicity... olmoust...
 			svn_gets $* ;;
