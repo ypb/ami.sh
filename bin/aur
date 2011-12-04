@@ -3,38 +3,68 @@
 load etc ami
 load etc aur # AUR_CMD
 
-# somethin about duplicates... overkill.?o_0?.
+# aur_dup from to
+# aka move from(noversion.tar.gz) to(version-xyz-b.tar.gz) "intelligently"
+# or at least informatively for the end user
 function aur_dup() {
-	test -f $2 || { mv $1 $2; return; }
-	local md2=$(md5sum $2 | cut -f1 -d' ')
-	local md1=$(md5sum $1 | cut -f1 -d' ')
-	[ "$md2" = "$md1" ] &&
-		{ echo $1 dupes $2; mv $1 $2,dup; } ||
-		{ md5sum $1 $2; echo $1 CONFLICTS $2; return 1; }
+	[ $# -ge 2 ] || return;
+	local from=$1
+	local to=$2
+	[ -r $from ] || return;
+	[ -e $to ] || { mv $from $to; return; }
+	local md_to=$(md5sum $to | cut -f1 -d' ')
+	local md_from=$(md5sum $from | cut -f1 -d' ')
+	[ "$md_to" = "$md_from" ] &&
+	  { echo "# aur_dup() $from is a duplicate of $to" >&2;
+		# what about dup of a dup of a dup ?-}
+		mv $from $to,dup; } ||
+	  { echo "$md_from  $from";
+		echo "$md_to  $to";
+		echo "$from CONFLICTS $to";
+		# because from can't then be the to version if it has different sum; FAIL
+		return 1; } >&2
 }
 
-# while getting move to "versioned" tar.gz if already present
+# aur_ver pkgname
+# while getting move to "versioned".tar.gz if already present
 function aur_ver() {
-	local tempf=/tmp/aur_ver-PKGBUILD-$1-$(date +%T)
-	tar xzf $1.tar.gz $1/PKGBUILD -O > $tempf || { rm -rf $tempf; return 1; }
+	[ -n "$1" ] || return;
+	local pkg=$1
+	local tempf="/tmp/aur_ver-PKGBUILD-$pkg-"$(date +%T)
+	# check, too
+	[ -r $pkg.tar.gz ] && {
+		tar xzf $pkg.tar.gz $pkg/PKGBUILD -O > $tempf || { rm -f $tempf; return 1; }
+	} || return;
 	local ver=$(sed -n 's/^[[:space:]]*pkgver[[:space:]]*=[[:space:]]*//p' $tempf | \
-		tr -s ' ')
+		tr -d "\"' ")
 	local rel=$(sed -n 's/^[[:space:]]*pkgrel[[:space:]]*=[[:space:]]*//p' $tempf | \
-		tr -s ' ')
-	rm -rf $tempf;
-	aur_dup $1.tar.gz $1-$ver-$rel.tar.gz
+		tr -d "\"' ")
+	rm -f $tempf;
+	aur_dup $pkg.tar.gz $pkg-$ver-$rel.tar.gz
 }
 
 # get pkg
 function aur_get() {
+	[ -n "$1" ] || return;
+	local pkg=$1
 	local d="$AMI_AURD/$1"
-	mkdir -p $d && cd $d || die 1 "aur_get() cd $d failure"
-	[ -f $1.tar.gz ] && { aur_ver $1 || { cd -; return 1; } }
-	md5sum $1*.tar.gz* 2>/dev/null || echo "$1 IS-not"
-	[ -f $1.tar.gz ] && { echo "$1 NOT-versioned"; cd -; exit 1; } ||
-	  $AUR_CMD $1
-# TOFIX... creates empty $dirs... even if...
-	[ $(ls | wc -l) = "0" ] && cd - 2>/dev/null 1>&2 && rmdir $d
+	mkdir -p $d && pushd $d 2>/dev/null 1>&2 || die 1 "aur_get() pushd $d failure";
+	[ -f $pkg.tar.gz ] && {
+		aur_ver $pkg ||	{
+		  popd 2>/dev/null 1>&2;
+		  return 1;
+		}
+	}
+	# crudely list current state
+	md5sum $pkg*.tar.gz* 2>/dev/null || echo "$pkg IS-not";
+	[ -f $pkg.tar.gz ] && {
+		popd 2>/dev/null 1>&2;
+		die 1 "aur_get() $pkg UN-version-ABLE";
+	} || $AUR_CMD $pkg;
+	[ -f $pkg.tar.gz ] && aur_ver $pkg;
+	popd 2>/dev/null 1>&2;
+	# FIXed... creates empty $d ir... even if...
+	[ $(ls $d | wc -l) = "0" ] && rmdir $d;
 }
 
 # gets manu packagos
@@ -46,8 +76,8 @@ function aur_gets() {
 }
 
 function aur_usage() {
-	echo "# '$AMI_PROG aur get <pkg>s?' is default"
-	echo "Usage: $AMI_PROG aur [get]"
+	echo "# '$AMI_PROG aur [get] <pkg>s' is default"
+	echo "Usage: $AMI_PROG aur [get] <pkg>"
 }
 
 # main()
