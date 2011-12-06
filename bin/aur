@@ -47,7 +47,7 @@ function aur_ver() {
 function aur_get() {
 	[ -n "$1" ] || return;
 	local pkg=$1
-	local d="$AMI_AURD/$1"
+	local d="$AMI_AURD/$pkg"
 	mkdir -p $d && pushd $d 2>/dev/null 1>&2 || die 1 "aur_get() pushd $d failure";
 	[ -f $pkg.tar.gz ] && {
 		aur_ver $pkg ||	{
