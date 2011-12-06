@@ -7,21 +7,27 @@ function status_ami() {
 	local agitd="$AMI_MDIR/.git"
 	[ -d "$agitd" ] && {
 		echo "# $AMI_PROG status ami"
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" git status -v ;
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" git status -s -b;
 	}
 }
 
 function status_svn() {
 	local d="$AMI_SVND"
 	local p=${1:-*}
+	shift
+	# we should prolly be both smarter here and in regards to $p since it may be "unpresent"
+	# TOFIX: but for now this shall dooo... eh, not really, bah.
+	local reps=${@:-$SVN_REPOS}
 	# TODO: if p!* check in which repo queried pkg is...
 	[ -d "$d" ] && echo "# $AMI_PROG status svn $p"
-	for r in $SVN_REPOS; do
+	for r in $reps; do
 		[ -d "$d/$r/.svn" ] && {
-			echo "# possible updates"
-			svn status -u "$d/$r" ;
-			echo "# pkg revs"
-			svn status -v "$d/$r/"$p"/trunk/PKGBUILD" ;
+			( cd $d && {
+				echo "# REPO(${r}): updates";
+				svn status -u "$r";
+				echo "# REPO(${r}): ptrunks";
+				svn status -v "$r/"$p"/trunk/PKGBUILD";
+			} )
 		}
 	done
 }
@@ -31,7 +37,7 @@ function status_git() {
 	[ -d "$agitd" ] && {
 		echo "# $AMI_PROG status git"
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git branch -v ;
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -v ;
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -s ;
 	}
 }
 
@@ -40,31 +46,37 @@ function status_aur() {
 	local p=${1:-*}
 	[ -d "$d" ] && {
 		echo "# $AMI_PROG status aur $p";
-		cd $d && ls -d1 $p/* 2>/dev/null ; }
+		cd $d && {
+			for dir in $p; do
+				# sorting by time may not be THAT reliable; BUT close eenuf
+				ls -t1 $dir/*.tar.gz 2>/dev/null | head -n 1 ;
+			done
+		} | sed 's,^[^/]*/\(.*\)\.tar\.gz,\1,g'
+	}
 }
 
 # main()
 case $1 in
 	-h)
-			echo "# '$AMI_PROG status ami&git' is default"
-			echo "Usage: $AMI_PROG status [ami|svn|git|aur [pkg]|all]" ;;
+			echo "# '$AMI_PROG status git' is default"
+			echo "Usage: $AMI_PROG status [ami|svn [pkg]|aur [pkg]|git|all]" ;;
 	all)
+			shift
 			status_ami
-			status_svn
+			status_svn "$*"
+			status_aur "$*"
 			status_git
-			status_aur
 			;;
 	ami)
 			status_ami ;;
 	svn)
 			shift
-			status_svn $* ;;
+			status_svn "$*" ;;
 	git)
 			status_git ;;
 	aur)
 			shift
-			status_aur $* ;;
+			status_aur "$*" ;;
 	*)
-			status_ami
 			status_git ;;
 esac
