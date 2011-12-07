@@ -26,8 +26,11 @@ function status_svn() {
 			( cd $d && {
 				echo "# svn status -u $r";
 				svn status -u "$r";
-				echo "# svn status -v $r/$p/trunk/PKGBUILD";
-				svn status -v "$r/"$p"/trunk/PKGBUILD";
+				# no sense in doing anything if nothing exists
+				ls "$r/"$p"/trunk/PKGBUILD" 1>/dev/null 2>&1 && {
+					echo "# svn status -v $r/$p/trunk/PKGBUILD";
+					svn status -v "$r/"$p"/trunk/PKGBUILD";
+				}
 			} )
 		}
 	done
