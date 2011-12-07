@@ -1,12 +1,16 @@
 # -*- mode: sh; eval: (sh-set-shell "bash") -*-
 
+# this names your "repo" and is reserved for other identification purposes
+AMI_USER=${USER:-ami}
+# above is prolly too dynamically brave, oh well
+#AMI_USER=
+
+# arch SVN stuff
 SVN_SERVER=svn.archlinux.org
 SVN_REPOS="packages community"
 
-# initial "pkg" branch directory
-PKG_BDIR=pkg
-# const file to seed initial commit on "pkg" branch
-PKG_README="$AMI_MDIR/share/pkg.README.md"
+# const README file to seed initial master commit
+MASTER_README="$AMI_VARS/master.README.md"
 
 # init pkg with PKGBUILD{,-*}.proto file
 PCM_SHARE=/usr/share/pacman

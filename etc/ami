@@ -10,6 +10,8 @@
 export AMI_ETCD=$(dirname $1)
 # path to individual <cmd> scripts
 AMI_CMDP="$AMI_MDIR/bin"
+# should really call it "share" but who doesn't love *NIXy tricharcisity;)
+AMI_VARS="$AMI_MDIR/var"
 # ROOT aka $AMI_MDIR/..
 AMI_ROOT=$(dirname "$AMI_MDIR")
 
@@ -19,3 +21,8 @@ AMI_GITD="$AMI_ROOT/PKGBUILDs.git"
 AMI_SVND="$AMI_ROOT/ArchLinux.svn"
 # TEMP dir used to keep in sync with PKGBUILDs from AUR
 AMI_AURD="$AMI_ROOT/AUR.files.tmp"
+# a bit pompous and inelegant, but should be uniq, at the least
+# (e.g. simple ami.git might collide)
+
+# to DEBUG or not to DEBUG
+AMI_DBG=1

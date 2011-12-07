@@ -21,9 +21,10 @@ function init_git() {
 		mkdir -p "$d" ;
 	}
 	[ -d "$d/.git" ] || {
-		cd "$d" && git init && \
-			mkdir $PKG_BDIR && cp $PKG_README $PKG_BDIR/README.md && \
-			git add . && git commit -m "NULL" && git branch -m master pkg ;
+		cd "$d" && git init &&
+		  cp $MASTER_README README.md &&
+		  echo $AMI_VERSION >> README.md &&
+		  git add . && git commit -m "init";
 	}
 }
 
