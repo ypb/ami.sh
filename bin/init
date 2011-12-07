@@ -35,6 +35,13 @@ function init_aur() {
 	}
 }
 
+function init_tmp() {
+	local d="$AMI_TEMP"
+	[ -d "$d" ] || {
+		mkdir -p "$d"/imports/{svn,aur} ;
+	}
+}
+
 function init_pkg() {
 	local d="$PCM_SHARE"
 	[ "$1" = "list" ] && {
@@ -54,18 +61,21 @@ function init_pkg() {
 case $1 in
 	-h)
 			echo "# '$AMI_PROG init *&~pkg' is default"
-			echo "Usage: $AMI_PROG init [svn|git|aur|pkg]" ;;
+			echo "Usage: $AMI_PROG init [svn|git|aur|tmp|pkg]" ;;
 	svn)
 			init_svn ;;
 	git)
 			init_git ;;
 	aur)
 			init_aur ;;
+	tmp)
+			init_tmp ;;
 	pkg)
 			shift
 			init_pkg $* ;;
 	*)
 			init_svn
 			init_git
-			init_aur ;;
+			init_aur
+			init_tmp ;;
 esac

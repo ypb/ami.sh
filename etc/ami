@@ -24,5 +24,9 @@ AMI_AURD="$AMI_ROOT/AUR.files.tmp"
 # a bit pompous and inelegant, but should be uniq, at the least
 # (e.g. simple ami.git might collide)
 
+# our own personal TMP
+AMI_TEMP="$AMI_ROOT/transitory.dir"
+# for imports/{svn,aur} and whatever else...
+
 # to DEBUG or not to DEBUG
 AMI_DBG=1
