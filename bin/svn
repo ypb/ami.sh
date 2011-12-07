@@ -28,8 +28,7 @@ function svn_get_logs() {
 	for n in rdata didx index iidx; do
 		type -t $n;
 	done
-	# trash da place
-	cd $AMI_CWD
+	# used to cd here...
 	for r in $SVN_REPOS; do
 		log_file=$(svn_log $r $1)
 		[ -s "$log_file" ] && {
@@ -47,16 +46,22 @@ function svn_get_logs() {
 function svn_gen_fi() {
 	[ -z "$1" ] && svn_usage && return
 	local pkg=$1
-	local log_filez
-	cd $AMI_CWD
-	log_filez=$(svn_get_logs $pkg)
-	for f in $log_filez ; do
-		# tofix, sillidiadem
-		repo=$(echo $f | sed "s,-log,,g;s,$pkg-,,g")
+	local log_file
+	local -a log_filez
+	local fi_file
+	# cd $AMI_CWD # $AMI_TEMP/imps...
+	for repo in $SVN_REPOS; do
+		log_file=$(svn_log $repo $pkg)
+		[ -z "$log_file" ] && continue
+		log_filez+=${log_file}
 		echo "# svn_gen_fi() repo($repo) pkg($pkg)" >&2;
-		cat $f | svn_proc_log | svn_collect_log fast-import $repo $pkg
+		fi_file=$(cat $log_file | svn_proc_log | svn_collect_log fast-import $repo $pkg)
 		# && cd $AMI_GITD && cat /home/ypb/src/AMI/ami/tmp/tix/fast-imps | git fast-import --date-format=rfc2822 # anywayz
 	done
+	# if there are more than one log file we should invent something better
+	# than WARNING, lazy mofo, since fi_file will contain only the LAST one, kabloom!
+	[ ${#log_filez[*]} -gt 1 ] && echo "# svn_gen_fi() WARNING: ${log_filez[*]}" >&2;
+	echo $fi_file;
 }
 
 function svn_usage() {
@@ -73,10 +78,15 @@ case $1 in
 			svn_gets $* ;;
 	log)
 			shift
+			# trash da place
+			cd $AMI_TEMP/imports/svn || die 1 "# no $AMI_TEMP/imports/svn found"
+			# TODO... be more sophisticated i.e. KNOW current rev and react!?!
 			svn_get_logs $* ;;
 	import)
 			shift
-			svn_gen_fi $* ;;
+			cd $AMI_TEMP/imports/svn || die 1 "# no $AMI_TEMP/imports/svn found"
+			# OMG!
+			echo $(pwd)/$(svn_gen_fi $*) ;;
 	*)
 			# damn duplicity... olmoust...
 			svn_gets $* ;;

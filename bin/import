@@ -1,22 +1,33 @@
 #!/bin/bash
 
 load etc ami
-settings
+#settings
 load lib ami # runcmd...
 load lib $(basename $0)
 
-dbgargs "$@"
+#dbgargs "$@"
 
 function import_aur() {
 	echo "via AUR"
-	echo "AUR import not really implemented YET"
+	echo "AUR import not really implemented YET, 'aur get'ing it..."
 	runcmd aur get $pkg
 }
 # NOT nice $pkg global...
 function import_svn() {
 	echo "via Arch Linux SVN"
-	echo "SVN import not really implemented YET"
-	runcmd svn get $pkg
+	echo "SVN import ALMOST really implemented, kabloom!"
+	local b="p/$pkg/arch"
+	runcmd status git | grep -q "$b" && die 234 "# $b already present"
+	local fi_file=$(runcmd svn import $pkg)
+	[ -s "$fi_file" ] && {
+		cd $AMI_GITD && cat "$fi_file" | git fast-import --date-format=rfc2822;
+		# && rm -f "$fi_file";
+		# leaving for now, but it's expandable as long as we leave svn_log and
+		# svn_export_rev files behind during 'svn import'
+	} || {
+		echo "# empty $fi_file (impossible, but TRUE)";
+		rm -f "$fi_file";
+	}
 }
 
 function import() {

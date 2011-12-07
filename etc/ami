@@ -25,8 +25,8 @@ AMI_AURD="$AMI_ROOT/AUR.files.tmp"
 # (e.g. simple ami.git might collide)
 
 # our own personal TMP
-AMI_TEMP="$AMI_ROOT/transitory.dir"
+AMI_TEMP="$AMI_ROOT/transient.dir"
 # for imports/{svn,aur} and whatever else...
 
 # to DEBUG or not to DEBUG
-AMI_DBG=1
+AMI_DBG=${AMI_DBG:-1}

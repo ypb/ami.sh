@@ -193,7 +193,8 @@ function svn_export_rev() {
 	[ -d "$todir" ] &&
 	  echo "# svn_export_rev() $todir already present" >&2 ||
 	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
-	[ $? -eq 0 ] && echo "$todir" || echo "";
+	# yeah... we should do it like this, except THAT
+	[ $? -eq 0 ] && echo "$todir" >&2 || echo "" >&2;
 }
 
 function writing-fi-files() {
@@ -213,7 +214,8 @@ function writing-fi-files() {
 
 	{
 		echo "progress Creating rev $rev";
-		echo "commit refs/heads/pkg/$pkg";
+		# this is oh so temporary... variabilize it?
+		echo "commit refs/heads/p/${pkg}/arch";
 		echo "mark :$mark";
 		commit=$mark;
 		mark+=1;
@@ -255,23 +257,29 @@ function writing-fi-files() {
 function fast-import() {
 	local repo=$1
 	local pkg=$2
+	local bfile="$pkg/fast-imps"
+	# local bfile="$pkg/fast-imps-$repo"?
+	# but than caller will only known of the LAST one... TOFIX
 	local -i l=${#index[*]}
 	local -i i=$(($l-1))
 	local -i mark=1
 	local -i revi
 	local -i revision=0
 	commit=0
+	# delete if already present
+	rm -f "$bfile";
 	while [ $i -ge 0 ]; do
 		revi=${index[$i]};
 		revision=${rdata[$revi]};
 		svn_export_rev $repo $pkg $revision;
-		ret=$(writing-fi-files $mark $pkg $i $pkg/fast-imps $repo);
+		ret=$(writing-fi-files $mark $pkg $i "$bfile" $repo);
 		# silly...
 		commit=$(echo $ret | sed 's/ .*$//g');
 		mark=$(echo $ret | sed 's/^[^ ]* //g');
 		i=$(($i-1));
 	done
 	[ $revision -gt 0 ] && {
+		# oh, what shall Ay call dee?
 		tagname="$pkg-$repo-r$revision"
 		echo "progress Creating tag '$tagname'";
 		# hmmm...
@@ -279,7 +287,9 @@ function fast-import() {
 		echo "from :$commit";
 		echo "tagger ami.sh <$USER AT $HOSTNAME> "$(date);
 		echo "data 0";
-	} >> $pkg/fast-imps
+	} >> "$bfile"
+	# this is sooo, very sick...
+	echo "$bfile";
 }
 
 # cat log_file | proc | collect fast-import community tix fi-file
