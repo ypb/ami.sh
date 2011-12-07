@@ -6,8 +6,9 @@ load etc init # svn...
 function status_ami() {
 	local agitd="$AMI_MDIR/.git"
 	[ -d "$agitd" ] && {
-		echo "# $AMI_PROG status ami"
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" git status -s -b;
+		local cmd="git status -sbu";
+		echo "# $AMI_PROG status ami -> $cmd";
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" $cmd;
 	}
 }
 
@@ -23,9 +24,9 @@ function status_svn() {
 	for r in $reps; do
 		[ -d "$d/$r/.svn" ] && {
 			( cd $d && {
-				echo "# REPO(${r}): updates";
+				echo "# svn status -u $r";
 				svn status -u "$r";
-				echo "# REPO(${r}): ptrunks";
+				echo "# svn status -v $r/$p/trunk/PKGBUILD";
 				svn status -v "$r/"$p"/trunk/PKGBUILD";
 			} )
 		}
@@ -35,9 +36,13 @@ function status_svn() {
 function status_git() {
 	local agitd="$AMI_GITD/.git"
 	[ -d "$agitd" ] && {
-		echo "# $AMI_PROG status git"
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git branch -v ;
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" git status -s ;
+		local cb="git branch -v --color=always | grep -C 10 '^*'";
+		local cs="git status -s";
+		echo "# $AMI_PROG status git -> $cb && $cs";
+		echo "...";
+		eval GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cb;
+		echo "...";
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cs;
 	}
 }
 
