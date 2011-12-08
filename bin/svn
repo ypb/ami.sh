@@ -21,16 +21,26 @@ function svn_gets() {
 	done
 }
 
+# svn_get_logs() echos relative log file path and re-prints log for $1 pkg
+# on stderr (TOFIX); optional $2 parameter orders and limits number of
+# revisions re-printed (0 no limit, negative starting from first rev -
+# opposite to svn default order, positive unchanged) defaults to 5 (see
+# prnsomerevs)
 function svn_get_logs() {
 	[ -z "$1" ] && svn_usage && return
+	local pkg="$1"
 	local log_file
 	# investigate this
 	for n in rdata didx index iidx; do
 		type -t $n;
 	done
 	# used to cd here...
-	for r in $SVN_REPOS; do
-		log_file=$(svn_log $r $1)
+	local repos=$(svn_exists $pkg)
+	[ -z "$repos" ] && {
+		repos="$SVN_REPOS";
+	}
+	for r in $repos; do
+		log_file=$(svn_log $r $pkg)
 		[ -s "$log_file" ] && {
 			# but what convention if we choose to $(use) it $pkg-$repo-log (see lib/svn:svn_log)
 			echo "$log_file";

@@ -1,5 +1,20 @@
 # -*- mode: sh; eval: (sh-set-shell "bash") -*-
 
+# the logics a changing
+function svn_exists() {
+	[ -z "$1" ] && echo "";
+	local d="$AMI_SVND";
+	local pkg="$1";
+	local ret="";
+	for r in $SVN_REPOS; do
+		[ -d "$d/$r/$pkg/.svn" ] && {
+			ret+="$r";
+		}
+	done
+	echo "$ret";
+}
+# because get != update
+
 # svn_log repo pkg
 function svn_log() {
 	[ -z $SVN_SERVER ] && die 128 "svn_log() SVN_SERVER not set";
