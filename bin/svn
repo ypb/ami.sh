@@ -45,7 +45,8 @@ function svn_get_logs() {
 			# but what convention if we choose to $(use) it $pkg-$repo-log (see lib/svn:svn_log)
 			echo "$log_file";
 			# TODO here we could use autolimiting on the svn_proc_log since ~10 is a screenful already and on svn_import we can turn off limiting.
-			cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2 >&2;
+			cat "$log_file" | svn_collect_log_to prnsomerevs $2 >&2;
+			#cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2 >&2;
 			true # awkward
 		} || {
 			echo "# $r/$1 log_file($log_file) empty (hmmmm)" >&2;
@@ -65,7 +66,7 @@ function svn_gen_fi() {
 		[ -z "$log_file" ] && continue
 		log_filez+=${log_file}
 		echo "# svn_gen_fi() repo($repo) pkg($pkg)" >&2;
-		fi_file=$(cat $log_file | svn_proc_log | svn_collect_log fast-import $repo $pkg)
+		fi_file=$(cat $log_file | svn_collect_log_to fast-import $repo $pkg)
 		# && cd $AMI_GITD && cat /home/ypb/src/AMI/ami/tmp/tix/fast-imps | git fast-import --date-format=rfc2822 # anywayz
 	done
 	# if there are more than one log file we should invent something better

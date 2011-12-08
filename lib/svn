@@ -43,70 +43,57 @@ declare -a index=()
 declare -i iidx=0
 # no can doop... subshelling in while ruins everything (BLEH[tm])
 
-# cat $(svn_log repo pkg) | svn_proc_log | svn_collect_log with_fun_name args
-function svn_proc_log() {
-	local -i in=0
-	local -i msgchars=0
-	while read ; do
-		# omit starting *dashed* line delim
-		[ $in -eq 0 ] && echo "$REPLY" | grep -q -- "^-\+$" && continue
-		# check for rev heading; process if so...
-		echo "$REPLY" | grep -q '^r[[:digit:]]* |.*' && {
-			in=1;
-			echo "$REPLY" | sed 's/ | /\n/g';
-			continue;
-		}
-		# skip first blank in msg...
-		[ $in -eq 1 ] && echo "$REPLY" | grep -q "^$" && {
-			in=2;
-			continue;
-		}
-		# treat log msg...
-		[ $in -eq 2 ] && echo "$REPLY" | grep -q -- "^-\+$" || {
-			# echo "PASSING: \"$REPLY\"" >&2
-			echo "$REPLY";
-			msgchars+=$(echo "$REPLY" | wc -c)
-			continue;
-		}
-		# not counting "Last Feed"
-		echo "commit_msg_byte_length     "$([ $msgchars -gt 0 ] && echo $(($msgchars-1)) || echo 0);
-		msgchars=0;
-		# else restart search
-		## echo "($in)restarting $iidx $didx ${#index[*]} ${#rdata[*]}" >&2
-		in=0;
-		# irrelavent
-		## iidx+=1;
-	done
-}
-### SLOW AS HELL ###
-function svn_collect_log() {
-	declare -a rdata=()
+# cat $(svn_log repo pkg) | svn_collect_log_to fun_name args*
+### used to be SLOW AS HELL; not anymore, order of mag faster!) ###
+function svn_collect_log_to() {
+	declare -a rdata
 	declare -i didx=0
-	declare -a index=()
+	declare -a index
 	declare -i iidx=0
+	declare -i state=0
+	declare -i chars=0
+	# ignore first line
+	read;
 	while read; do
-		### echo -n "collect: " >&2;
-		echo "$REPLY" | grep -q '^r[[:digit:]]*$' && {
-			rdata[${didx}]=$(echo "$REPLY" | sed 's/^r//g');
-			index[${iidx}]=${didx};
-			iidx+=1;
-			} || {
-			echo "$REPLY" | grep -q '^[[:digit:]]* line.*$' && {
-				rdata[${didx}]=$(echo "$REPLY" | sed 's/ line.*//g');
+		# skip line after "header" && enter msg
+		[ $state -eq 1 ] && {
+			#echo "collecting: skipper";
+			state=2;
+		} || {
+			# seek end of msg or process it
+			[ $state -eq 2 ] && {
+				[[ "$REPLY" =~ ^-+$ ]] && {
+					#echo "collecting: endofmsg";
+					[ $chars -gt 0 ] && chars=$(($chars-1));
+					rdata+=($chars);
+					didx+=1;
+					chars=0;
+					state=0;
+				} || {
+					#echo "collecting: msgline";
+					rdata+=("$REPLY");
+					didx+=1;
+					chars+=$(echo "$REPLY" | wc -c);
 				}
-			} || {
-			# LOL
-			echo "$REPLY" | grep -q '^commit_msg_byte_length     [[:digit:]]*$' && {
-				rdata[${didx}]=$(echo "$REPLY" | sed 's/^commit_msg_byte_length     //g');
-				}
-			} || {
-			rdata[${didx}]="$REPLY";
-			} # || { ... perhaps ignore more ...
-		### echo $iidx $didx >&2;
-	didx=$(($didx+1));	
-	### echo "\"${index[$(($iidx-1))]}\" \"${rdata[$(($didx-4))]}\" \"${rdata[$(($didx-3))]}\" \"${rdata[$(($didx-2))]}\" \"${rdata[$(($didx-1))]}\"" >&2;
+			}
+		} || {
+			# must be header, then
+			[[ $state -eq 0 &&
+			   "$REPLY" =~ ^r([[:digit:]]*)" | "([[:alnum:]]*)" | "(([^ ]+ ){6})([^ ]+)" | "([[:digit:]]+)" line".*$ ]] && {
+				#echo "collecting: header";
+				state=1;
+				rdata+=("${BASH_REMATCH[1]}");
+				index+=($didx);
+				iidx+=1;
+				# oh well...
+				rdata+=("${BASH_REMATCH[2]}");
+				rdata+=("${BASH_REMATCH[3]}${BASH_REMATCH[5]}");
+				rdata+=("${BASH_REMATCH[6]}");
+				didx+=4;
+			}
+		}
 	done
-# fuck
+# now do something to parsed log...
 	$@
 }
 
@@ -185,7 +172,7 @@ function prnsomerevs() {
 	[ $N -lt 0 -a $N -lt -$l ] && N=-$l
 # no nie wiem...
 	local s=$([ $N -gt 0 ] && seq 0 1 $(($N-1)) || seq -1 -1 $N)
-	prnrevsep
+	[ $l -gt 0 ] && prnrevsep
 	for i in $s; do
 		# echo "N=$i"
 		prntrev $i;
@@ -307,4 +294,4 @@ function fast-import() {
 	echo "$bfile";
 }
 
-# cat log_file | proc | collect fast-import community tix fi-file
+# cat log_file | collect fast-import community tix fi-file
