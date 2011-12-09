@@ -24,10 +24,12 @@ function status_svn() {
 	for r in $reps; do
 		[ -d "$d/$r/.svn" ] && {
 			( cd $d && {
-				echo "# svn status -u $r";
-				svn status -u "$r";
+				echo "# svn status -u $r/$p";
+				# hmm... "$r/"$p or... hmmm
+				svn status -u "$r/$p";
 				# no sense in doing anything if nothing exists
 				ls "$r/"$p"/trunk/PKGBUILD" 1>/dev/null 2>&1 && {
+					# argh... need opts like in git... anywayz. --depth dirs only?
 					echo "# svn status -v $r/$p/trunk/PKGBUILD";
 					svn status -v "$r/"$p"/trunk/PKGBUILD";
 				}
@@ -37,15 +39,29 @@ function status_svn() {
 }
 
 function status_git() {
+	[ -z "$1" ] && {
+		local tagopts="-l";
+		local bchopts="-C 10 ^\*";
+		local clropts=always;
+	} || {
+		local tagopts="-l *#$1";
+		local bchopts="-C 3 p/$1";
+		local clropts=never;
+	}
 	local agitd="$AMI_GITD/.git"
 	[ -d "$agitd" ] && {
-		local cb="git branch -v --color=always | grep -C 10 '^*'";
+		local cb="git branch -v --color=always";
+		local gr="grep $bchopts";
 		local cs="git status -s";
-		echo "# $AMI_PROG status git -> $cb && $cs";
+		local ct="git tag $tagopts";
+		echo "# $AMI_PROG status git -> $cb | "$gr;
 		echo "...";
-		eval GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cb;
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cb | $gr;
 		echo "...";
+		echo "# $AMI_PROG status git -> $cs";
 		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cs;
+		echo "# $AMI_PROG status git -> $ct";
+		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $ct;
 	}
 }
 
@@ -67,24 +83,25 @@ function status_aur() {
 case $1 in
 	-h)
 			echo "# '$AMI_PROG status git' is default"
-			echo "Usage: $AMI_PROG status [ami|svn [pkg]|aur [pkg]|git|all]" ;;
+			echo "Usage: $AMI_PROG status [ami|aur [pkg]|git [pkg]|svn [pkg]|all]" ;;
 	all)
 			shift
 			status_ami
-			status_svn "$*"
-			status_aur "$*"
-			status_git
+			status_aur $*
+			status_git $*
+			status_svn $*
 			;;
 	ami)
 			status_ami ;;
 	svn)
 			shift
-			status_svn "$*" ;;
+			status_svn $* ;;
 	git)
-			status_git ;;
+			shift
+			status_git $* ;;
 	aur)
 			shift
-			status_aur "$*" ;;
+			status_aur $* ;;
 	*)
 			status_git ;;
 esac
