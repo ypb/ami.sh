@@ -21,37 +21,36 @@ function svn_gets() {
 	done
 }
 
-# svn_get_logs() echos relative log file path and re-prints log for $1 pkg
-# on stderr (TOFIX); optional $2 parameter orders and limits number of
-# revisions re-printed (0 no limit, negative starting from first rev -
-# opposite to svn default order, positive unchanged) defaults to 5 (see
-# prnsomerevs)
-function svn_get_logs() {
+# svn_print_log() prints log(s, i wish) for $1 pkg; optional $2 param
+# orders and limits number of revisions printed (0: no limit, <0: starting
+# from "first" rev i.e. opposite to svn convention, >0: from "last")
+# default is to limit to 5 revisions
+function svn_print_log() {
 	[ -z "$1" ] && svn_usage && return
 	local pkg="$1"
 	local log_file
-	# investigate this
-	for n in rdata didx index iidx; do
-		type -t $n;
-	done
-	# used to cd here...
 	local repos=$(svn_exists $pkg)
+	# perhaps svn_get here too? hmmm...
 	[ -z "$repos" ] && {
 		repos="$SVN_REPOS";
 	}
+	# trash da place
+	local logdir=$AMI_TEMP/imports/svn/$pkg
+	mkdir -p $logdir && cd $logdir || die 1 "# cd $logdir failure"
+	# TODO... more sophisticated i.e. KNOW current rev and adjust cache
 	for r in $repos; do
-		log_file=$(svn_log $r $pkg)
-		[ -s "$log_file" ] && {
-			# but what convention if we choose to $(use) it $pkg-$repo-log (see lib/svn:svn_log)
-			echo "$log_file";
-			# TODO here we could use autolimiting on the svn_proc_log since ~10 is a screenful already and on svn_import we can turn off limiting.
-			cat "$log_file" | svn_collect_log_to prnsomerevs $2 >&2;
-			#cat "$log_file" | svn_proc_log | svn_collect_log prnsomerevs $2 >&2;
-			true # awkward
-		} || {
-			echo "# $r/$1 log_file($log_file) empty (hmmmm)" >&2;
+		log_file=$(svn_log $r $pkg) # $rev...
+		[ -n "$log_file" ] && {
+			[ -s "$log_file" ] && {
+				cat "$log_file" | svn_collect_log_to prnsomerevs ${2:-5};
+			} || {
+				echo "# $r/$pkg log_file($log_file) empty (hmmmm)" >&2;
+			}
 		}
 	done
+	popd 2>/dev/null 1>&2;
+	# FIXed... creates empty $logd ir... even if...
+	[ $(ls $logdir | wc -l) = "0" ] && rmdir $logdir;
 }
 
 function svn_gen_fi() {
@@ -89,13 +88,10 @@ case $1 in
 			svn_gets $* ;;
 	log)
 			shift
-			# trash da place
-			cd $AMI_TEMP/imports/svn || die 1 "# no $AMI_TEMP/imports/svn found"
-			# TODO... be more sophisticated i.e. KNOW current rev and react!?!
-			svn_get_logs $* ;;
+			svn_print_log $* ;;
 	import)
 			shift
-			cd $AMI_TEMP/imports/svn || die 1 "# no $AMI_TEMP/imports/svn found"
+			cd $AMI_TEMP/imports/svn/$1 || die 1 "# no $AMI_TEMP/imports/svn found"
 			# OMG!
 			echo $(pwd)/$(svn_gen_fi $*) ;;
 	*)

@@ -23,8 +23,9 @@ function svn_log() {
 	local repo=${1:-packages}
 	[ -z $2 ] && echo "# svn_log() defaulting to 'pacman' pkg" >&2;
 	local pkg=${2:-pacman}
-	# not to HOT a name as far as demangling it back goes...
-	local tofile="$pkg-$repo-log"
+	# assuming we are running in the right CWD, caller responsibility
+	local tofile="svn-$repo-$pkg.log"
+	# i.e. imports/svn/$pkg dir...
 	# echo svn log svn://$srv/$repo $pkg >&2
 	[ -f "$tofile" ] &&
 	  echo "# svn_log() $tofile already present" >&2 ||
