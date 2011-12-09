@@ -39,3 +39,70 @@ function aur_ver() {
 	rm -f $tempf;
 	aur_dup $pkg.tar.gz $pkg-$ver-$rel.tar.gz
 }
+
+# a bit too trivial...
+function aur_exists() {
+	[ -n "$1" ] || return;
+	local pkg=$1
+	ls -rt $AMI_AURD/$pkg/*.tar.gz 2>/dev/null
+}
+
+# aur_fast_import pkg aurballs+
+function aur_fast_import() {
+	[ -n "$1" ] || return;
+	local pkg="$1";
+	shift;
+	local aubollz=($*);
+	[ $AMI_DBG -eq 1 ] && echo "## aur_fast_import $pkg ${aubollz[*]}" >&2;
+	local -i mark=1;
+	local -i commit;
+	local version;
+	local logmsg;
+	local tmpafile="/tmp/ami-aur-fi-$pkg-"$(date +%T);
+
+	# "afile" to physical file... bfile (aka blob) to stdout...
+	for a in ${aubollz[@]}; do
+		version=$([[ "$a" =~ "$pkg-"(.*)".tar.gz" ]] && echo "${BASH_REMATCH[1]}");
+		[ -z "$version" ] && return 32;
+		{
+			echo "progress Creating $version commit";
+			echo "commit refs/heads/p/${pkg}/aur";
+			echo "mark :$mark";
+			commit=$mark;
+			mark+=1;
+		# we could use the mdate of PKGBUILD file, perhaps laterz
+			echo "committer ami.sh <$USER AT $HOSTNAME> "$(stat -c %y "$a");
+		# and overall we can get cute with parsing out maintainer... blah, blah
+			logmsg="AUR $pkg $version";
+			echo "data "$(echo -n "$logmsg" | wc -c);
+			echo "$logmsg";
+			echo "deleteall";
+		} > "$tmpafile";
+
+		# YEAH, YEAH, YEAH assuming proper CWD
+		rm -rf "$pkg";
+		tar xf "$a";
+		FILES=($(find "$pkg" -type f))
+		for f in ${FILES[@]}; do
+			echo "blob";
+			echo "mark :$mark";
+			echo "data "$(stat -c %s "$f");
+			cat "$f";
+
+			echo "M "$(stat -c %a "$f")" :$mark $pkg/aur/"$(basename "$f") >> "$tmpafile";
+
+			mark+=1;
+		done
+		cat "$tmpafile";
+		echo
+	done
+	rm -rf "$pkg";
+	rm -f "$tmpafile";
+
+	# BUT here this "shape" doesn't feel right... BUTT looks great in git tag -l... YAY
+	local tagname="aur@${version}#${pkg}";
+	echo "progress Creating lightweight tag '$tagname'";
+	echo "reset refs/tags/$tagname";
+	echo "from :$commit";
+	echo;
+}

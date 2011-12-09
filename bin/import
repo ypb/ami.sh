@@ -5,20 +5,55 @@ load etc ami
 load lib ami # runcmd...
 load lib $(basename $0)
 load lib svn
+load lib aur
 
 #dbgargs "$@"
 
 function import_aur() {
-	echo "via AUR"
-	echo "AUR import not really implemented YET, 'aur get'ing it..."
-	runcmd aur get $pkg
+	echo "via AUR";
+	echo "# AUR import being implemented, mostly 'aur get'ing it...";
+	local b="p/$pkg/aur";
+	# be careful what we ask for (grep args in 'status git $pkg' may collide...
+	runcmd status git $pkg | grep -q "$b" && die 234 "# $b already present";
+	# or -v or -all switch in status git...
+	runcmd aur get $pkg;
+	# always try to get teh latest...
+	local vers=($(aur_exists $pkg));
+	[ ${#vers[*]} -gt 0 ] || die 235 "# import_aur() nothing to do";
+	echo -e "# available versions (in modification)sic!(time order)\n";
+	for v in ${vers[@]}; do
+		[[ "$v" =~ .*/"$pkg-"([^/]*)".tar.gz" ]] && echo "${BASH_REMATCH[1]}";
+	done
+	#echo -e "\n###\n"; #or
+	#echo ${vers[@]} | sed 's/\(\.tar\.gz\) /\1\n/g' | sed 's/.*\/'$pkg'-\(.*\)\.tar\.gz/\1/g';
+	echo;
+	# prolly insert "good order?" prompt here...
+	local tout=300
+	read -p "Press SPACE to continue. " -N 1 -s -t $tout ||
+	  die $? "TIMEOUT after $tout seconds.";
+	[ "$REPLY" = " " ] || die $? "Bye, then.";
+	echo "Okidoki.";
+
+	cd $AMI_TEMP/imports/aur/ || die 1 "# cd temp import failure";
+	rm -f $pkg-fast-import;
+	aur_fast_import $pkg ${vers[@]} > $pkg-fast-import;
+	# NOW
+	[ $? -eq 0 ] && {
+		echo "# Importing GIT fast-import file for pkg($pkg) of repo(aur)";
+		# cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
+		export GIT_DIR="$AMI_GITD/.git"; cat "$pkg-fast-import" | git fast-import --quiet --date-format=rfc2822; } || {
+		echo "# KABLOOM!";
+	}
+
+	# clean-up?
+	# rm -f $pkg-fast-import;
 }
 # NOT nice $pkg global...
 function import_svn() {
 	echo "via Arch Linux SVN"
 	echo "SVN import ALMOST really implemented, kabloom!"
 	local b="p/$pkg/arch"
-	runcmd status git | grep -q "$b" && die 234 "# $b already present"
+	runcmd status git $pkg | grep -q "$b" && die 234 "# $b already present"
 	local repos=($(svn_exists $pkg))
 	# perhaps svn_get here too? hmmm...
 	[ "${#repos[*]}" -eq 0 ] && {
