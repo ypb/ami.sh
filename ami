@@ -55,7 +55,11 @@ case $1 in
 		runcmd "$@" ;;
 esac
 
+ret=$?
+
 [ $AMI_DBG -eq 1 ] && {
 	echo "## ar<$@>gs ##" ;
 	echo "## pw<$(pwd)>d ##" ;
 } || true
+
+exit $ret;

@@ -5,8 +5,9 @@ export AMI_LIBD=$(dirname $1)
 
 # the usual
 function die() {
+	local -i s=$1;
 	echo "$2" >&2;
-	exit $1;
+	exit $s;
 }
 
 # itsybitsy de bugging
