@@ -4,6 +4,7 @@ load etc ami
 #settings
 load lib ami # runcmd...
 load lib $(basename $0)
+load lib svn
 
 #dbgargs "$@"
 
@@ -18,16 +19,40 @@ function import_svn() {
 	echo "SVN import ALMOST really implemented, kabloom!"
 	local b="p/$pkg/arch"
 	runcmd status git | grep -q "$b" && die 234 "# $b already present"
-	local fi_file=$(runcmd svn import $pkg)
-	[ -s "$fi_file" ] && {
-		cd $AMI_GITD && cat "$fi_file" | git fast-import --date-format=rfc2822;
+	local repos=($(svn_exists $pkg))
+	# perhaps svn_get here too? hmmm...
+	[ "${#repos[*]}" -eq 0 ] && {
+		runcmd svn get $pkg
+	}
+	repos=($(svn_exists $pkg))
+	[ "${#repos[*]}" -eq 0 ] && die 235 "# it appears there is no $pkg package in Arch (${repos[@]})"
+	# TODO?: find (if it exists) and import all of history besides present "location"
+	[ "${#repos[*]}" -gt 1 ] && die 236 "# $pkg exists in both repos (IM-possible!)"
+	# trash da place
+	local impdir=$AMI_TEMP/imports/svn/$pkg
+	mkdir -p $impdir && cd $impdir || die 1 "# cd $impdir failure"
+	local fi_file="fast-import"
+	rm -f $fi_file
+	local log_file
+	for r in ${repos[@]}; do
+		log_file=$(svn_log $r $pkg)
+		[ -z "$log_file" ] && continue
+		echo "# (re-)generating GIT fast-import file for pkg($pkg) of repo($r)";
+		cat $log_file | svn_collect_log_to fast-import $r $pkg $fi_file
+	done
+	# echo "# Importing into GIT" >&2;
+	[ ! -s "$fi_file" ] && {
+		echo "# empty $fi_file (impossible, but TRUE)";
+		rm -f "$fi_file";
+	} || {
+		cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
 		# && rm -f "$fi_file";
 		# leaving for now, but it's expandable as long as we leave svn_log and
 		# svn_export_rev files behind during 'svn import'
-	} || {
-		echo "# empty $fi_file (impossible, but TRUE)";
-		rm -f "$fi_file";
 	}
+	# clean up... but leave svn_export cache for sure, no point in redownloading
+	# and they pack good.
+	# rm -f $impdir/$fi_file;
 }
 
 function import() {
@@ -54,8 +79,7 @@ case $1 in
 	*)
 			pkg=$1
 			shift
-			[ -n "$pkg" ] &&
-				{ import $* ; } ||
-				import_usage
-			;;
+			[ -z "$pkg" ] &&
+			  import_usage ||
+			  import $* ;;
 esac

@@ -53,30 +53,9 @@ function svn_print_log() {
 	[ $(ls $logdir | wc -l) = "0" ] && rmdir $logdir;
 }
 
-function svn_gen_fi() {
-	[ -z "$1" ] && svn_usage && return
-	local pkg=$1
-	local log_file
-	local -a log_filez
-	local fi_file
-	# cd $AMI_CWD # $AMI_TEMP/imps...
-	for repo in $SVN_REPOS; do
-		log_file=$(svn_log $repo $pkg)
-		[ -z "$log_file" ] && continue
-		log_filez+=${log_file}
-		echo "# svn_gen_fi() repo($repo) pkg($pkg)" >&2;
-		fi_file=$(cat $log_file | svn_collect_log_to fast-import $repo $pkg)
-		# && cd $AMI_GITD && cat /home/ypb/src/AMI/ami/tmp/tix/fast-imps | git fast-import --date-format=rfc2822 # anywayz
-	done
-	# if there are more than one log file we should invent something better
-	# than WARNING, lazy mofo, since fi_file will contain only the LAST one, kabloom!
-	[ ${#log_filez[*]} -gt 1 ] && echo "# svn_gen_fi() WARNING: ${log_filez[*]}" >&2;
-	echo $fi_file;
-}
-
 function svn_usage() {
 	echo "# '$AMI_PROG svn get <pkg>' is default"
-	echo "Usage: $AMI_PROG svn [get|log|import] <pkg>"
+	echo "Usage: $AMI_PROG svn [get|log] <pkg>"
 }
 
 # main()
@@ -89,11 +68,6 @@ case $1 in
 	log)
 			shift
 			svn_print_log $* ;;
-	import)
-			shift
-			cd $AMI_TEMP/imports/svn/$1 || die 1 "# no $AMI_TEMP/imports/svn found"
-			# OMG!
-			echo $(pwd)/$(svn_gen_fi $*) ;;
 	*)
 			# damn duplicity... olmoust...
 			svn_gets $* ;;

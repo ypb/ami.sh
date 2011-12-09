@@ -1,5 +1,8 @@
 # -*- mode: sh; eval: (sh-set-shell "bash") -*-
 
+# hmm.... so that others may load the lib and be forgiven for forgetting to load etc/svn?
+load etc init
+
 # the logics a changing
 function svn_exists() {
 	[ -z "$1" ] && echo "";
@@ -30,7 +33,7 @@ function svn_log() {
 	[ -f "$tofile" ] &&
 	  echo "# svn_log() $tofile already present" >&2 ||
 	  svn log svn://$srv/$repo $pkg > "$tofile";
-# svn return 0 too even on fail?...
+# svn return 0 too even on fail?... perhaps sleep a moment after echo?
 	[ $? -eq 0 ] && echo "$tofile" || { rm -f "$tofile"; echo ""; }
 }
 
@@ -192,7 +195,8 @@ function svn_export_rev() {
 	local pkg=${2:-pacman}
 	[ -z $3 ] && echo "# svn_export_rev() defaulting to SVN r1" >&2;
 	local rev=${3:-1}
-	local todir="$pkg/$repo/r$rev"
+	# assuming we are inside some/where/$pkg dir
+	local todir="$repo/r$rev"
 	[ -d "$todir" ] &&
 	  echo "# svn_export_rev() $todir already present" >&2 ||
 	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
@@ -233,12 +237,15 @@ function writing-fi-files() {
 		done
 		echo "deleteall";
 		# here goes the filelist and BLOBing...
-		expdir=$pkg/$repo/r$rev
+		expdir=$repo/r$rev
+		# above should prolly also be a param or we should export here and
+		# get this dir from svn_exporter... TOREDO.
 		FILES=($(find "$expdir" -type f))
 		# echo "M 644 :$mark FILEZ";
 		for f in ${FILES[@]}; do
 			{
-				echo "progress Importing $f";
+				# a bit too much, per rev is enuf
+				#echo "progress Importing $f";
 				echo "blob";
 				echo "mark :$mark";
 
@@ -246,7 +253,8 @@ function writing-fi-files() {
 				cat "$f";
 			} >> $bfile
 			# boolbool
-			echo "M "$(stat -c %a "$f")" :$mark "$(echo "$f" | sed "s,/r$rev/,/,g;s,/$repo/,/,g;s,/repos/,/,g;s,/trunk/,/$repo/,g");
+			echo "M "$(stat -c %a "$f")" :$mark "$(echo "$pkg/$f" | sed "s,/$repo/r$rev/,/,g;s,/repos/,/,g;s,/trunk/,/$repo/,g");
+			# arghh...
 			mark+=1;
 		done
 		echo
@@ -256,11 +264,12 @@ function writing-fi-files() {
 	echo "$commit $mark"
 }
 
-# going down...
+# fast-import repo pkg file
 function fast-import() {
 	local repo=$1
 	local pkg=$2
-	local bfile="$pkg/fast-imps"
+	# local bfile="$pkg/fast-imps"
+	local bfile=$3
 	# local bfile="$pkg/fast-imps-$repo"?
 	# but than caller will only known of the LAST one... TOFIX
 	local -i l=${#index[*]}
@@ -269,11 +278,11 @@ function fast-import() {
 	local -i revi
 	local -i revision=0
 	commit=0
-	# delete if already present
-	rm -f "$bfile";
+	[ $i -ge 0 ] && svn_export_cache_maybe_unpack $repo;
 	while [ $i -ge 0 ]; do
 		revi=${index[$i]};
 		revision=${rdata[$revi]};
+		# TODO: move to writ-fi-file-ing
 		svn_export_rev $repo $pkg $revision;
 		ret=$(writing-fi-files $mark $pkg $i "$bfile" $repo);
 		# silly...
@@ -283,16 +292,28 @@ function fast-import() {
 	done
 	[ $revision -gt 0 ] && {
 		# oh, what shall Ay call dee?
-		tagname="$pkg-$repo-r$revision"
-		echo "progress Creating tag '$tagname'";
+		tagname="${repo}@${revision}#${pkg}"
+		echo "progress Creating lightweight tag '$tagname'";
 		# hmmm...
-		echo "tag $tagname";
+		echo "reset refs/tags/$tagname";
+		#echo "tag $tagname";
 		echo "from :$commit";
-		echo "tagger ami.sh <$USER AT $HOSTNAME> "$(date);
-		echo "data 0";
+		#echo "tagger ami.sh <$USER AT $HOSTNAME> "$(date);
+		echo;
+		#echo "data 0";
 	} >> "$bfile"
-	# this is sooo, very sick...
-	echo "$bfile";
+	svn_export_cache_maybe_pack $repo;
 }
 
 # cat log_file | collect fast-import community tix fi-file
+
+# CRUDE "cache" hangling fur naw.
+function svn_export_cache_maybe_unpack() {
+	[ -n "$1" ] || return;
+	[ -d "$1" ] && return;
+	[ -f "$1.tar.bz2" ] && tar -xjf "$1.tar.bz2";
+}
+function svn_export_cache_maybe_pack() {
+	[ -n "$1" ] || return;
+	[ -d "$1" ] && rm -f "$1.tar.bz2" && tar -cjf "$1.tar.bz2" "$1" && rm -rf "$1";
+}
