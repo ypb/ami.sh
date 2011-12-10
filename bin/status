@@ -4,65 +4,54 @@ load etc ami
 load etc init # svn...
 
 function status_ami() {
-	local agitd="$AMI_MDIR/.git"
-	[ -d "$agitd" ] && {
+	local d="$AMI_MDIR";
+	[ -d "$d/.git" ] && {
 		local cmd="git status -sbu";
-		echo "# $AMI_PROG status ami -> $cmd";
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_MDIR" $cmd;
-	}
+		echo "# $AMI_PROG status ami";
+		GIT_DIR="$d/.git" GIT_WORK_TREE="$d" $cmd;
+	} || return;
 }
 
 function status_svn() {
-	local d="$AMI_SVND"
-	local p=${1:-*}
-	shift
-	# we should prolly be both smarter here and in regards to $p since it may be "unpresent"
-	# TOFIX: but for now this shall dooo... eh, not really, bah.
-	local reps=${@:-$SVN_REPOS}
-	# TODO: if p!* check in which repo queried pkg is...
-	[ -d "$d" ] && echo "# $AMI_PROG status svn $p"
-	for r in $reps; do
-		[ -d "$d/$r/.svn" ] && {
-			( cd $d && {
-				echo "# svn status -u $r/$p";
-				# hmm... "$r/"$p or... hmmm
-				svn status -u "$r/$p";
-				# no sense in doing anything if nothing exists
-				ls "$r/"$p"/trunk/PKGBUILD" 1>/dev/null 2>&1 && {
-					# argh... need opts like in git... anywayz. --depth dirs only?
-					echo "# svn status -v $r/$p/trunk/PKGBUILD";
-					svn status -v "$r/"$p"/trunk/PKGBUILD";
-				}
-			} )
-		}
-	done
+	local d="$AMI_SVND";
+	local p=${1:-*};
+	[ -d "$d" ] && echo "# $AMI_PROG status svn $p" || return;
+	[ "$p" = "*" ] && {
+		for r in $SVN_REPOS; do
+			[ -d "$d/$r/.svn" ] &&
+			  echo -n "# $r: "
+#			  ( cd "$d" && svn status --depth=empty "$r"; )
+			  ( cd "$d/$r" && svn status -u -v | grep -v "/" | sort -g; )
+		done
+		# this shouldn't fail, but...
+		true
+	} || {
+		for r in $SVN_REPOS; do
+			[ -d "$d/$r/$p/.svn" ] &&
+			  ( cd "$d/$r/$p" && svn status -v | sort -gr; )
+		done
+	}
 }
 
 function status_git() {
-	[ -z "$1" ] && {
-		local tagopts="-l";
-		local bchopts="-C 10 ^\*";
-		local clropts=always;
-	} || {
-		local tagopts="-l *#$1";
-		local bchopts="-C 3 p/$1";
-		local clropts=never;
+	local d="$AMI_GITD";
+	local p="*";
+	local tagopts="-l";
+	local bchopts="^\*";
+	[ -n "$1" ] && {
+		p="$1";
+		tagopts="-l *#$1";
+		bchopts="p/$1/";
 	}
-	local agitd="$AMI_GITD/.git"
-	[ -d "$agitd" ] && {
-		local cb="git branch -v --color=always";
-		local gr="grep $bchopts";
-		local cs="git status -s";
-		local ct="git tag $tagopts";
-		echo "# $AMI_PROG status git -> $cb | "$gr;
-		echo "...";
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cb | $gr;
-		echo "...";
-		echo "# $AMI_PROG status git -> $cs";
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $cs;
-		echo "# $AMI_PROG status git -> $ct";
-		GIT_DIR="$agitd" GIT_WORK_TREE="$AMI_GITD" $ct;
-	}
+	[ -d "$d/.git" ] && echo "# $AMI_PROG status git $p" || return;
+	export GIT_DIR="$d/.git";
+	export GIT_WORK_TREE="$d";
+	# could we count lines of 'status -s' and make it as "nice" as status_aur?
+	git branch -v --color=always | grep $bchopts;
+	git status -s;
+	git tag $tagopts | sort -Vr;
+	export -n GIT_DIR;
+	export -n GIT_WORK_TREE;
 }
 
 function status_aur() {
@@ -70,11 +59,17 @@ function status_aur() {
 	local p=${1:-*}
 	[ -d "$d" ] && {
 		echo "# $AMI_PROG status aur $p";
+		local l=$(tput lines)
 		cd $d && {
-			for dir in $p; do
-				# sorting by time may not be THAT reliable; BUT close eenuf
-				ls -t1 $dir/*.tar.gz 2>/dev/null | head -n 1 ;
-			done
+			# sorting by time may not be THAT reliable; BUT close eenuf
+			[ "$p" = "*" ] && {
+				for dir in $(ls -ctd * | head -n $(($l-3))); do
+					ls -t1 $dir/*.tar.gz 2>/dev/null | head -n 1 ;
+				done
+				echo "[...]";
+			} || {
+				ls -tl $p/*.tar.gz 2>/dev/null | sed 's/'$p'-//g';
+			}
 		} | sed 's,^[^/]*/\(.*\)\.tar\.gz,\1,g'
 	}
 }
@@ -83,10 +78,9 @@ function status_aur() {
 case $1 in
 	-h)
 			echo "# '$AMI_PROG status git' is default"
-			echo "Usage: $AMI_PROG status [ami|aur [pkg]|git [pkg]|svn [pkg]|all]" ;;
+			echo "Usage: $AMI_PROG status [ami]|[aur [pkg]|git [pkg]|svn [pkg]|all]" ;;
 	all)
 			shift
-			status_ami
 			status_aur $*
 			status_git $*
 			status_svn $*
@@ -103,5 +97,6 @@ case $1 in
 			shift
 			status_aur $* ;;
 	*)
-			status_git ;;
+#			shift
+			status_git $* ;;
 esac
