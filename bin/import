@@ -1,6 +1,6 @@
 #!/bin/bash
 
-load etc ami
+# load etc ami
 #settings
 load lib ami # runcmd...
 load lib $(basename $0)
@@ -11,16 +11,16 @@ load lib aur
 
 function import_aur() {
 	echo "via AUR";
-	echo "# AUR import being implemented, mostly 'aur get'ing it...";
+	msg "AUR import being implemented, mostly 'aur get'ing it...";
 	local b="p/$pkg/aur";
 	# be careful what we ask for (grep args in 'status git $pkg' may collide...
-	runcmd status git $pkg | grep -q "$b" && die 234 "# $b already present";
+	runcmd status git $pkg | grep -q "$b" && die "$b already present." 234;
 	# or -v or -all switch in status git...
 	runcmd aur get $pkg;
 	# always try to get teh latest...
 	local vers=($(aur_exists $pkg));
-	[ ${#vers[*]} -gt 0 ] || die 235 "# import_aur() nothing to do";
-	echo -e "# available versions (in modification)sic!(time order)\n";
+	[ ${#vers[*]} -gt 0 ] || die "import_aur() nothing to do." 235;
+	echo -e "# available versions (in modification)sic!(time order):\n";
 	for v in ${vers[@]}; do
 		[[ "$v" =~ .*/"$pkg-"([^/]*)".tar.gz" ]] && echo "${BASH_REMATCH[1]}";
 	done
@@ -30,19 +30,20 @@ function import_aur() {
 	# prolly insert "good order?" prompt here...
 	local tout=300
 	read -p "Press SPACE to continue. " -N 1 -s -t $tout ||
-	  die $? "TIMEOUT after $tout seconds.";
-	[ "$REPLY" = " " ] || die $? "Bye, then.";
+	  die "TIMEOUT after $tout seconds." $?;
+	[ "$REPLY" = " " ] || die "Bye, then." $?;
 	echo "Okidoki.";
 
-	cd $AMI_TEMP/imports/aur/ || die 1 "# cd temp import failure";
+	msg "(re-)generating GIT fast-import file for pkg($pkg) of repo(aur).";
+	cd $AMI_TEMP/imports/aur/ || die "cd temp import failure." 1;
 	rm -f $pkg-fast-import;
 	aur_fast_import $pkg ${vers[@]} > $pkg-fast-import;
 	# NOW
 	[ $? -eq 0 ] && {
-		echo "# Importing GIT fast-import file for pkg($pkg) of repo(aur)";
+		msg "Importing into GIT.";
 		# cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
 		export GIT_DIR="$AMI_GITD/.git"; cat "$pkg-fast-import" | git fast-import --quiet --date-format=rfc2822; } || {
-		echo "# KABLOOM!";
+		msg "KABLOOM!";
 	}
 
 	# clean-up?
@@ -51,33 +52,33 @@ function import_aur() {
 # NOT nice $pkg global...
 function import_svn() {
 	echo "via Arch Linux SVN"
-	echo "SVN import ALMOST really implemented, kabloom!"
+	msg "SVN import ALMOST really implemented, kabloom!"
 	local b="p/$pkg/arch"
-	runcmd status git $pkg | grep -q "$b" && die 234 "# $b already present"
+	runcmd status git $pkg | grep -q "$b" && die "$b already present." 234;
 	local repos=($(svn_exists $pkg))
 	# perhaps svn_get here too? hmmm...
 	[ "${#repos[*]}" -eq 0 ] && {
 		runcmd svn get $pkg
 	}
 	repos=($(svn_exists $pkg))
-	[ "${#repos[*]}" -eq 0 ] && die 235 "# it appears there is no $pkg package in Arch (${repos[@]})"
+	[ "${#repos[*]}" -eq 0 ] && die "it appears there is no $pkg package in Arch (${repos[@]})." 235;
 	# TODO?: find (if it exists) and import all of history besides present "location"
-	[ "${#repos[*]}" -gt 1 ] && die 236 "# $pkg exists in both repos (IM-possible!)"
+	[ "${#repos[*]}" -gt 1 ] && die "$pkg exists in both repos (IM-possible!)." 236;
 	# trash da place
 	local impdir=$AMI_TEMP/imports/svn/$pkg
-	mkdir -p $impdir && cd $impdir || die 1 "# cd $impdir failure"
+	mkdir -p $impdir && cd $impdir || die "cd $impdir failure." 1;
 	local fi_file="fast-import"
 	rm -f $fi_file
 	local log_file
 	for r in ${repos[@]}; do
 		log_file=$(svn_log $r $pkg)
 		[ -z "$log_file" ] && continue
-		echo "# (re-)generating GIT fast-import file for pkg($pkg) of repo($r)";
+		msg "(re-)generating GIT fast-import file for pkg($pkg) of repo(arch/$r).";
 		cat $log_file | svn_collect_log_to fast-import $r $pkg $fi_file
 	done
-	# echo "# Importing into GIT" >&2;
+	msg "Importing into GIT.";
 	[ ! -s "$fi_file" ] && {
-		echo "# empty $fi_file (impossible, but TRUE)";
+		msg "empty $fi_file (impossible, but TRUE).";
 		rm -f "$fi_file";
 	} || {
 		cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
@@ -103,8 +104,9 @@ function import() {
 }
 
 function import_usage() {
-	echo "# '$AMI_PROG import <pkg> aur' is default"
-	echo "Usage: $AMI_PROG import <pkg> [svn|aur]"
+	msg "'$AMI_PROG import <pkg> aur' is default.";
+	echo "Usage: $AMI_PROG import <pkg> [svn|aur]";
+	exit 3;
 }
 
 # main()

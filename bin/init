@@ -1,6 +1,6 @@
 #!/bin/bash
 
-load etc ami
+load lib ami
 load etc $(basename $0)
 
 function init_svn() {
@@ -57,11 +57,16 @@ function init_pkg() {
 #	echo "WTF($d/$p)"
 }
 
+function init_usage() {
+	msg "'$AMI_PROG init *&~pkg' is default.";
+	echo "Usage: $AMI_PROG init [svn|git|aur|tmp|pkg]";
+	exit 3;
+}
+
 # main()
 case $1 in
 	-h)
-			echo "# '$AMI_PROG init *&~pkg' is default"
-			echo "Usage: $AMI_PROG init [svn|git|aur|tmp|pkg]" ;;
+			init_usage ;;
 	svn)
 			init_svn ;;
 	git)

@@ -3,6 +3,7 @@
 export AMI_VERSION=0.1.0
 AMI="$0"
 
+# "de-soft-link"
 while [ -h "$AMI" ]; do
   ls=$(ls -ld "$AMI")
   link=$(expr "$ls" : '.*-> \(.*\)$')
@@ -18,32 +19,28 @@ export AMI
 export AMI_PROG=$(basename "$0")
 export AMI_MDIR=$(dirname "$AMI")
 
-# load config
-AMI_CONF="$AMI_MDIR/etc/ami"
-[ -f "$AMI_CONF" ] && . "$AMI_CONF" "$AMI_CONF" || { echo "$AMI_PROG: no $AMI_CONF config file found" >&2; exit 1; }
+# try hard to do the right thing[tm]
+[ "$AMI_MDIR" = "." ] && AMI_MDIR=$(pwd);
+[[ "$AMI_MDIR" =~ ^/ ]] || AMI_MDIR=$(cd "$AMI_MDIR" && pwd);
 
 # load library
 AMI_LIBF="$AMI_MDIR/lib/ami"
 [ -f "$AMI_LIBF" ] && . "$AMI_LIBF" "$AMI_LIBF" || { echo "$AMI_PROG: no $AMI_LIBF lib file found" >&2; exit 1; }
-
-# DEBUG(for now)
-export AMI_DBG=${AMI_DBG:-1}
-settings
-export -f settings
+# it loads config so in practice 'load lib ami' alone in cmds should be ok
 
 export AMI_CWD=$(pwd)
 # not sure about that...
-[ -n "$AMI_ROOT" ] && {
-	cd "$AMI_ROOT" || die 1 "cd $AMI_ROOT failure" ;
-	} || {
-	die 1 "AMI_ROOT not set" ;
-	}
+[ -n "$AMI_ROOT" ] || die "AMI_ROOT not set.";
+cd "$AMI_ROOT" || die "cd $AMI_ROOT failure.";
 
 # bail if nothing to do...
-[ $# -eq 0 ] && usage
+[ $# -eq 0 ] && usage;
 
 # main()
-[ $AMI_DBG -eq 1 ] && echo "## cmd: '$1' ##"
+settings
+debug "main() args: '$@'.";
+debug "main() cmd: '$1'.";
+#die;
 case $1 in
 	cmds)
 		cmds ;;
@@ -57,9 +54,6 @@ esac
 
 ret=$?
 
-[ $AMI_DBG -eq 1 ] && {
-	echo "## ar<$@>gs ##" ;
-	echo "## pw<$(pwd)>d ##" ;
-} || true
+debug "main() pwd '$(pwd)'.";
 
 exit $ret;

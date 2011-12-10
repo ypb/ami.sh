@@ -12,12 +12,12 @@ function aur_dup() {
 	local md_to=$(md5sum $to | cut -f1 -d' ')
 	local md_from=$(md5sum $from | cut -f1 -d' ')
 	[ "$md_to" = "$md_from" ] &&
-	  { echo "# aur_dup() $from is a duplicate of $to" >&2;
+	  { errmsg "aur_dup() $from is a duplicate of $to";
 		# what about dup of a dup of a dup ?-}
 		mv $from $to,dup; } ||
 	  { echo "$md_from  $from";
 		echo "$md_to  $to";
-		echo "$from CONFLICTS $to";
+		errmsg "$from CONFLICTS $to";
 		# because from can't then be the to version if it has different sum; FAIL
 		return 1; } >&2
 }
@@ -53,7 +53,7 @@ function aur_fast_import() {
 	local pkg="$1";
 	shift;
 	local aubollz=($*);
-	[ $AMI_DBG -eq 1 ] && echo "## aur_fast_import $pkg ${aubollz[*]}" >&2;
+	debug "aur_fast_import $pkg ${aubollz[*]}.";
 	local -i mark=1;
 	local -i commit;
 	local version;

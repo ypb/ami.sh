@@ -20,18 +20,18 @@ function svn_exists() {
 
 # svn_log repo pkg
 function svn_log() {
-	[ -z $SVN_SERVER ] && die 128 "svn_log() SVN_SERVER not set";
+	[ -z $SVN_SERVER ] && die "svn_log() SVN_SERVER not set." 128;
 	local srv=$SVN_SERVER
-	[ -z $1 ] && echo "# svn_log() defaulting to 'packages' repo" >&2;
+	[ -z $1 ] && errmsg "svn_log() defaulting to 'packages' repo.";
 	local repo=${1:-packages}
-	[ -z $2 ] && echo "# svn_log() defaulting to 'pacman' pkg" >&2;
+	[ -z $2 ] && errmsg "svn_log() defaulting to 'pacman' pkg.";
 	local pkg=${2:-pacman}
 	# assuming we are running in the right CWD, caller responsibility
 	local tofile="svn-$repo-$pkg.log"
 	# i.e. imports/svn/$pkg dir...
 	# echo svn log svn://$srv/$repo $pkg >&2
 	[ -f "$tofile" ] &&
-	  echo "# svn_log() $tofile already present" >&2 ||
+	  errmsg "svn_log() $tofile already present." ||
 	  svn log svn://$srv/$repo $pkg > "$tofile";
 # svn return 0 too even on fail?... perhaps sleep a moment after echo?
 	[ $? -eq 0 ] && echo "$tofile" || { rm -f "$tofile"; echo ""; }
@@ -187,18 +187,18 @@ function prnsomerevs() {
 
 # svn_export_rev repo pkg rev
 function svn_export_rev() {
-	[ -z $SVN_SERVER ] && die 128 "svn_export_rev() SVN_SERVER not set";
+	[ -z $SVN_SERVER ] && die "svn_export_rev() SVN_SERVER not set." 128;
 	local srv=$SVN_SERVER
-	[ -z $1 ] && echo "# svn_export_rev() defaulting to 'packages' repo" >&2;
+	[ -z $1 ] && errmsg "svn_export_rev() defaulting to 'packages' repo.";
 	local repo=${1:-packages}
-	[ -z $2 ] && echo "# svn_export_rev() defaulting to 'pacman' pkg" >&2;
+	[ -z $2 ] && errmsg "svn_export_rev() defaulting to 'pacman' pkg.";
 	local pkg=${2:-pacman}
-	[ -z $3 ] && echo "# svn_export_rev() defaulting to SVN r1" >&2;
+	[ -z $3 ] && errmsg "svn_export_rev() defaulting to SVN r1.";
 	local rev=${3:-1}
 	# assuming we are inside some/where/$pkg dir
 	local todir="$repo/r$rev"
 	[ -d "$todir" ] &&
-	  echo "# svn_export_rev() $todir already present" >&2 ||
+	  errmsg "svn_export_rev() $todir already present." ||
 	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
 	# yeah... we should do it like this, except THAT
 	[ $? -eq 0 ] && echo "$todir" >&2 || echo "" >&2;

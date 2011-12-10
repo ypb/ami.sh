@@ -1,21 +1,21 @@
 #!/bin/bash
 
-load etc ami
-load etc init # SVN_
+load lib ami
+#load etc init # SVN_
 load lib svn
 
 function svn_get() {
 	local d="$AMI_SVND"
 	for r in $SVN_REPOS; do
 		[ -d "$d/$r/.svn" ] && {
-			echo "# $AMI_PROG svn get $r/$1";
+			msg "$AMI_PROG svn get $r/$1.";
 			cd "$d/$r" && svn update $1 ;
 		}
 	done
 }
 
 function svn_gets() {
-	[ -z "$1" ] && svn_usage && return
+	[ -z "$1" ] && svn_usage;
 	for p in $*; do
 		svn_get $p
 	done
@@ -26,7 +26,7 @@ function svn_gets() {
 # from "first" rev i.e. opposite to svn convention, >0: from "last")
 # default is to limit to 5 revisions
 function svn_print_log() {
-	[ -z "$1" ] && svn_usage && return
+	[ -z "$1" ] && svn_usage;
 	local pkg="$1"
 	local log_file
 	local repos=$(svn_exists $pkg)
@@ -36,7 +36,7 @@ function svn_print_log() {
 	}
 	# trash da place
 	local logdir=$AMI_TEMP/imports/svn/$pkg
-	mkdir -p $logdir && cd $logdir || die 1 "# cd $logdir failure"
+	mkdir -p $logdir && cd $logdir || die "cd $logdir failure." 1;
 	# TODO... more sophisticated i.e. KNOW current rev and adjust cache
 	for r in $repos; do
 		log_file=$(svn_log $r $pkg) # $rev...
@@ -44,7 +44,7 @@ function svn_print_log() {
 			[ -s "$log_file" ] && {
 				cat "$log_file" | svn_collect_log_to prnsomerevs ${2:-5};
 			} || {
-				echo "# $r/$pkg log_file($log_file) empty (hmmmm)" >&2;
+				errmsg "$r/$pkg log_file($log_file) empty (hmmmm).";
 			}
 		}
 	done
@@ -54,8 +54,9 @@ function svn_print_log() {
 }
 
 function svn_usage() {
-	echo "# '$AMI_PROG svn get <pkg>' is default"
-	echo "Usage: $AMI_PROG svn [get|log] <pkg>"
+	msg "'$AMI_PROG svn get <pkg>' is default.";
+	echo "Usage: $AMI_PROG svn [get|log] <pkg>";
+	exit 3;
 }
 
 # main()

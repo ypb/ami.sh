@@ -1,6 +1,6 @@
 #!/bin/bash
 
-load etc ami
+load lib ami
 load etc init # svn...
 
 function status_ami() {
@@ -74,11 +74,16 @@ function status_aur() {
 	}
 }
 
+function status_usage() {
+	msg "'$AMI_PROG status git' is default.";
+	echo "Usage: $AMI_PROG status [ami]|[aur [pkg]|git [pkg]|svn [pkg]|all]";
+	exit 3;
+}
+
 # main()
 case $1 in
 	-h)
-			echo "# '$AMI_PROG status git' is default"
-			echo "Usage: $AMI_PROG status [ami]|[aur [pkg]|git [pkg]|svn [pkg]|all]" ;;
+			status_usage ;;
 	all)
 			shift
 			status_aur $*

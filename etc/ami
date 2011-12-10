@@ -28,5 +28,5 @@ AMI_AURD="$AMI_ROOT/AUR.files.tmp"
 AMI_TEMP="$AMI_ROOT/transient.dir"
 # for imports/{svn,aur} and whatever else...
 
-# to DEBUG or not to DEBUG
-AMI_DBG=${AMI_DBG:-1}
+# to DEBUG or not to DEBUG?
+export AMI_DBG=${AMI_DBG:-0}

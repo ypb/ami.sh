@@ -1,46 +1,64 @@
 # -*- mode: sh; eval: (sh-set-shell "bash") -*-
 
+# and this is supposed to be simple?
+[ -v AMI_LIBL_AMI ] && return;
+AMI_LIBL_AMI=1
+# load config
+AMI_CONF="$AMI_MDIR/etc/ami"
+[ -f "$AMI_CONF" ] && . "$AMI_CONF" "$AMI_CONF" || { echo "$AMI_PROG: no $AMI_CONF config file found" >&2; exit 1; }
 # library dir, autorelatife... like in $AMI_ETCD/ami
 export AMI_LIBD=$(dirname $1)
 
-# the usual
+# the usual: die msg [status]
 function die() {
-	local -i s=$1;
-	echo "$2" >&2;
-	exit $s;
+	local s=$?;
+	local m=${1:-teh ende.};
+	echo "$AMI_PROG: $m" >&2;
+	[ -z "$2" ] && exit $s || exit $2;
 }
-
+# uniform debugging
+function debug() {
+	[ $AMI_DBG -eq 1 ] || return;
+	[ -n "$1" ] && echo "## "$@ >&2 || true;
+}
+# because of load, meh
+export -f debug
 # itsybitsy de bugging
 function settings() {
-	[ $AMI_DBG -eq 1 ] && {
-		for v in AMI AMI_PROG AMI_MDIR AMI_ETCD AMI_LIBD AMI_CMDP AMI_ROOT AMI_GITD AMI_SVND AMI_AURD; do
-			echo "## $v = "$(eval echo \$$v);
+	debug && {
+		for v in AMI_PROG AMI_VERSION AMI AMI_MDIR AMI_LIBD AMI_ETCD AMI_CMDP AMI_VARS AMI_HELP AMI_HOME AMI_GITD AMI_SVND AMI_AURD AMI_ARCH AMI_CWD; do
+			echo "## $v = ${!v}";
 		done
-	}
+	} >&2
 }
-
-##export -f settings
-
+# blah blah blah
+function msg() {
+	echo "# "$@;
+}
+function errmsg() {
+	echo "# "$@ >&2;
+}
+# Usage:
 function usage() {
-	echo "# '$AMI_PROG cmds' to list available <cmd>s"
-	die 3 "Usage: $AMI_PROG [OPTS] <cmd> [OPTS] [ARGS]"
+	msg "'$AMI_PROG cmds' to list available <cmd>s.";
+	echo "Usage: $AMI_PROG [OPTS] <cmd> [OPTS] [ARGS]";
+	exit 3;
 }
-
 # trivial
 function cmds() {
-	ls -1 "$AMI_CMDP"
+	ls -1 "$AMI_CMDP";
 }
 
 function runcmd() {
-	local cmd=$1
+	local cmd=$1;
 	shift
-	[ $AMI_DBG -eq 1 ] && echo "## runcmd() $cmd $*" >&2
-	bash "$AMI_CMDP/$cmd" "$@"
+	debug "runcmd() $cmd: '$*'.";
+	bash "$AMI_CMDP/$cmd" "$@";
 }
 
 function load() {
-	local path
-	[ $AMI_DBG -eq 1 ] && echo "## load() $*" >&2
+	local path;
+	debug "load() $*.";
 	case $1 in
 		etc)
 			path=$AMI_ETCD ;;
@@ -50,28 +68,23 @@ function load() {
 			return ;;
 	esac
 	shift
-	[ -z "$1" ] && return
-	path=$path/$1
+	[ -n "$1" ] || return;
+	path=$path/$1;
 	[ -f "$path" ] && {
-		{ [ $AMI_DBG -eq 1 ] && echo "# load() $path" >&2 || true ; } && \
-			. $path $path; }
+		debug "load() $path.";
+		. $path $path;
+	}
 }
 
 # lulz
 export -f load
 
 function dbgargs() {
-	[ $AMI_DBG -eq 1 ] && {
+	debug && {
+		echo -n "## dbgargs()";
 		for a in "$@"; do
-			echo "## \"$a\"";
+			echo " \"$a\"";
 		done
-	}
-}
-
-
-# naaah...
-function mkdirz() {
-	for d in $AMI_GITD $AMI_SVND $AMI_AURD; do
-		mkdir -p $d || die 1 "mkdirz init failure"
-	done
+		echo;
+	} >&2
 }

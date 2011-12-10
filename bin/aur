@@ -1,6 +1,6 @@
 #!/bin/bash
 
-load etc ami
+load lib ami
 load etc aur # AUR_CMD
 load lib aur
 
@@ -9,7 +9,7 @@ function aur_get() {
 	[ -n "$1" ] || return;
 	local pkg=$1
 	local d="$AMI_AURD/$pkg"
-	mkdir -p $d && pushd $d 2>/dev/null 1>&2 || die 1 "aur_get() pushd $d failure";
+	mkdir -p $d && pushd $d 2>/dev/null 1>&2 || die "aur_get() pushd $d failure." 1;
 	[ -f $pkg.tar.gz ] && {
 		aur_ver $pkg ||	{
 		  popd 2>/dev/null 1>&2;
@@ -17,10 +17,10 @@ function aur_get() {
 		}
 	}
 	# crudely list current state
-	md5sum $pkg*.tar.gz* 2>/dev/null || echo "$pkg IS-not";
+	md5sum $pkg*.tar.gz* 2>/dev/null || msg "$pkg IS-not.";
 	[ -f $pkg.tar.gz ] && {
 		popd 2>/dev/null 1>&2;
-		die 1 "aur_get() $pkg UN-version-ABLE";
+		die "aur_get() $pkg UN-version-ABLE." 1;
 	} || $AUR_CMD $pkg;
 	[ -f $pkg.tar.gz ] && aur_ver $pkg;
 	popd 2>/dev/null 1>&2;
@@ -30,15 +30,16 @@ function aur_get() {
 
 # gets manu packagos
 function aur_gets() {
-	[ -z "$1" ] && aur_usage && return
+	[ -z "$1" ] && aur_usage;
 	for p in $*; do
 		aur_get $p
 	done
 }
 
 function aur_usage() {
-	echo "# '$AMI_PROG aur [get] <pkg>s' is default"
-	echo "Usage: $AMI_PROG aur [get] <pkg>"
+	msg "'$AMI_PROG aur [get] <pkg>s' is default.";
+	echo "Usage: $AMI_PROG aur [get] <pkg>";
+	exit 3;
 }
 
 # main()
