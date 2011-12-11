@@ -46,14 +46,36 @@ function usage() {
 }
 # trivial
 function cmds() {
-	ls -1 "$AMI_CMDP";
+	echo;
+	ls -1 "$AMI_CMDP" | sed 's/^\(..\).*/\1|\0/g';
+	echo;
 }
 
 function runcmd() {
-	local cmd=$1;
+	[ -n "$1" ] || return;
+	# be somehow consistent with cmds suggestion...
+	[ $(echo -n $1 | wc -c) -ge 2 ] || {
+		msg "not enough 'bits' to determine command: '$1'.";
+		return 2;
+	}
+	local cmd=($(ls "$AMI_CMDP/$1"* 2>/dev/null));
+	[ ${#cmd[*]} -gt 0 ] || {
+		msg "no such command '$1'.";
+		cmds;
+		msg "are the available cmds.";
+		return 2;
+	}
+	[ ${#cmd[*]} -eq 1 ] || {
+		msg "ambiguous command name '$1'."; echo;
+		for c in ${cmd[@]}; do
+			basename $c;
+		done
+		echo; msg "matches found.";
+		return 2;
+	}
 	shift
-	debug "runcmd() $cmd: '$*'.";
-	bash "$AMI_CMDP/$cmd" "$@";
+	debug "runcmd() ${cmd[0]}: '$*'.";
+	bash "${cmd[0]}" "$@";
 }
 
 function load() {
