@@ -42,7 +42,7 @@ function import_aur() {
 	[ $? -eq 0 ] && {
 		msg "Importing into GIT.";
 		# cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
-		export GIT_DIR="$AMI_GITD/.git"; cat "$pkg-fast-import" | git fast-import --quiet --date-format=rfc2822; } || {
+		export GIT_DIR="$AMI_GITD/.git"; cat "$pkg-fast-import" | git fast-import --quiet --date-format=rfc2822; export -n GIT_DIR; } || {
 		msg "KABLOOM!";
 	}
 
@@ -81,14 +81,14 @@ function import_svn() {
 		msg "empty $fi_file (impossible, but TRUE).";
 		rm -f "$fi_file";
 	} || {
-		cd $AMI_GITD && cat "$impdir/$fi_file" | git fast-import --quiet --date-format=rfc2822;
+		cd $AMI_GITD && cat "$fi_file" | git fast-import --quiet --date-format=rfc2822;
 		# && rm -f "$fi_file";
 		# leaving for now, but it's expandable as long as we leave svn_log and
 		# svn_export_rev files behind during 'svn import'
 	}
 	# clean up... but leave svn_export cache for sure, no point in redownloading
 	# and they pack good.
-	# rm -f $impdir/$fi_file;
+	# rm -f $fi_file;
 }
 
 function import() {
