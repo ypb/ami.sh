@@ -57,16 +57,26 @@ function status_git() {
 function status_aur() {
 	local d="$AMI_AURD"
 	local p=${1:-*}
+	local -i l
 	[ -d "$d" ] && {
 		echo "# $AMI_PROG status aur $p";
-		local l=$(tput lines)
+		# meh, looks like we need an option...
+		#[ -z "$2" ] &&
+		l=$(($(tput lines)-2))
+		#|| l=$2;
 		cd $d && {
 			# sorting by time may not be THAT reliable; BUT close eenuf
 			[ "$p" = "*" ] && {
-				for dir in $(ls -ctd * | head -n $(($l-3))); do
-					ls -t1 $dir/*.tar.gz 2>/dev/null | head -n 1 ;
+				local dirs=($(ls -t))
+				local dnum=${#dirs[*]}
+				[ $dnum -gt $l ] && {
+					echo "[...]";
+					l=$(($l-2));
+				} || l=$(($dnum-1))
+				while [ $l -ge 0 ]; do
+					ls -t1 ${dirs[$l]}/*.tar.gz 2>/dev/null | head -n 1 ;
+					l=$(($l-1));
 				done
-				echo "[...]";
 			} || {
 				ls -tl $p/*.tar.gz 2>/dev/null | sed 's/'$p'-//g';
 			}

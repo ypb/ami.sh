@@ -35,7 +35,7 @@ function svn_print_log() {
 		repos="$SVN_REPOS";
 	}
 	# trash da place
-	local logdir=$AMI_TEMP/imports/svn/$pkg
+	local logdir=$AMI_ARCH/$pkg
 	mkdir -p $logdir && cd $logdir || die "cd $logdir failure." 1;
 	# TODO... more sophisticated i.e. KNOW current rev and adjust cache
 	for r in $repos; do

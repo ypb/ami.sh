@@ -30,8 +30,8 @@ AMI_LIBF="$AMI_MDIR/lib/ami"
 
 export AMI_CWD=$(pwd)
 # not sure about that...
-[ -n "$AMI_ROOT" ] || die "AMI_ROOT not set.";
-cd "$AMI_ROOT" || die "cd $AMI_ROOT failure.";
+[ -n "$AMI_HOME" ] || die "AMI_HOME not set.";
+[ -d "$AMI_HOME" ] || mkdir -p "$AMI_HOME" || die "mkdir -p $AMI_HOME failure.";
 
 # bail if nothing to do...
 [ $# -eq 0 ] && usage;

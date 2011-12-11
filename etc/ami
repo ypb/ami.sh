@@ -12,21 +12,26 @@ export AMI_ETCD=$(dirname $1)
 AMI_CMDP="$AMI_MDIR/bin"
 # should really call it "share" but who doesn't love *NIXy tricharcisity;)
 AMI_VARS="$AMI_MDIR/var"
-# ROOT aka $AMI_MDIR/..
-AMI_ROOT=$(dirname "$AMI_MDIR")
+# not used for now, but for future help system, if ever
+AMI_HELP=
+
+# ROOT aka $AMI_MDIR/.. home of all the variable stuff
+AMI_HOME=$(dirname "$AMI_MDIR")/amish.cache.d
+# hmmm... overcomplicatikilling.
 
 # git repo used to store PKGBUILD files' history
-AMI_GITD="$AMI_ROOT/PKGBUILDs.git"
+AMI_GITD="$AMI_HOME/git0"
 # dir of selective 'svn co' of main distro's PKGBUILDs
-AMI_SVND="$AMI_ROOT/ArchLinux.svn"
-# TEMP dir used to keep in sync with PKGBUILDs from AUR
-AMI_AURD="$AMI_ROOT/AUR.files.tmp"
-# a bit pompous and inelegant, but should be uniq, at the least
-# (e.g. simple ami.git might collide)
+AMI_SVND="$AMI_HOME/svn"
+# cache subdir used to keep in sync with PKGBUILDs from AUR
+AMI_AURD="$AMI_HOME/aur"
+# here we keep exports begotten during SVN imports and 'svn log's
+AMI_ARCH="$AMI_HOME/arch"
+# like AMI_AURD each pkg's data in a subdirectory
 
-# our own personal TMP
-AMI_TEMP="$AMI_ROOT/transient.dir"
-# for imports/{svn,aur} and whatever else...
+# our own personal TMP, for now mostly only to not delete immediately
+AMI_TEMP="$AMI_HOME/tmp"
+# imports/{aur,svn}/$pkg-fast-import files (or other temp debug logs...)
 
 # to DEBUG or not to DEBUG?
 export AMI_DBG=${AMI_DBG:-0}

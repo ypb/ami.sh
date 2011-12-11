@@ -65,9 +65,9 @@ function import_svn() {
 	# TODO?: find (if it exists) and import all of history besides present "location"
 	[ "${#repos[*]}" -gt 1 ] && die "$pkg exists in both repos (IM-possible!)." 236;
 	# trash da place
-	local impdir=$AMI_TEMP/imports/svn/$pkg
+	local impdir=$AMI_ARCH/$pkg
 	mkdir -p $impdir && cd $impdir || die "cd $impdir failure." 1;
-	local fi_file="fast-import"
+	local fi_file="$AMI_TEMP/imports/svn/$pkg-fast-import"
 	rm -f $fi_file
 	local log_file
 	for r in ${repos[@]}; do

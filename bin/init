@@ -6,10 +6,11 @@ load etc $(basename $0)
 function init_svn() {
 	local d="$AMI_SVND"
 	[ -d "$d" ] || {
-		mkdir -p "$d" ;
+		mkdir -p "$d" && msg "init_svn() mkdir -p $d.";
 	}
 	for r in $SVN_REPOS; do
 		[ -d "$d/$r/.svn" ] || {
+			msg "init_svn() repo: $r.";
 			cd "$d" && svn checkout --depth=empty svn://$SVN_SERVER/$r ;
 		}
 	done
@@ -18,9 +19,10 @@ function init_svn() {
 function init_git() {
 	local d="$AMI_GITD"
 	[ -d "$d" ] || {
-		mkdir -p "$d" ;
+		mkdir -p "$d" && msg "init_git() mkdir -p $d.";
 	}
 	[ -d "$d/.git" ] || {
+		msg "init_git().";
 		cd "$d" && git init &&
 		  cp $MASTER_README README.md &&
 		  echo $AMI_VERSION >> README.md &&
@@ -28,18 +30,12 @@ function init_git() {
 	}
 }
 
-function init_aur() {
-	local d="$AMI_AURD"
-	[ -d "$d" ] || {
-		mkdir -p "$d" ;
-	}
-}
-
-function init_tmp() {
-	local d="$AMI_TEMP"
-	[ -d "$d" ] || {
-		mkdir -p "$d"/imports/{svn,aur} ;
-	}
+function init_cache() {
+	for d in "$AMI_AURD" "$AMI_ARCH" "$AMI_TEMP/imports/aur" "$AMI_TEMP/imports/svn"; do
+		[ -d "$d" ] || {
+			mkdir -p "$d" && msg "init_caches() mkdir -p $d.";
+		}
+	done
 }
 
 function init_pkg() {
@@ -59,7 +55,7 @@ function init_pkg() {
 
 function init_usage() {
 	msg "'$AMI_PROG init *&~pkg' is default.";
-	echo "Usage: $AMI_PROG init [svn|git|aur|tmp|pkg]";
+	echo "Usage: $AMI_PROG init [svn|git|cache|pkg]";
 	exit 3;
 }
 
@@ -71,16 +67,13 @@ case $1 in
 			init_svn ;;
 	git)
 			init_git ;;
-	aur)
-			init_aur ;;
-	tmp)
-			init_tmp ;;
+	cache)
+			init_cache ;;
 	pkg)
 			shift
 			init_pkg $* ;;
 	*)
 			init_svn
 			init_git
-			init_aur
-			init_tmp ;;
+			init_cache ;;
 esac
