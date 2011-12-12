@@ -2,15 +2,41 @@
 
 load lib ami
 load etc general # GIT_VIEWER
+# perhaps move this into respective funs?
+load lib svn # svn_exists
+load lib aur # aur_exists
 
 function view_git() {
 	cd $AMI_GITD &&
 	  exec $GIT_VIEWER $@;
 }
 
+function view_svn() {
+	[ -z "$1" ] && { cd $AMI_SVND && ls -d1 */* | sort; return; }
+	local pkg="$1";
+	local rps=($(svn_exists $pkg));
+	debug "${#rps[*]}'${rps[@]}'";
+	[ ${#rps[*]} -gt 0 ] || die "view_svn() there is no '$pkg' package.";
+	# bug in the making, taking the frst one...
+	cat "$AMI_SVND/${rps[0]}/$pkg/trunk/PKGBUILD";
+	# or we could show repos/foo or TODO: $2...
+	# $3 revision?
+}
+
+function view_aur() {
+	[ -n "$1" ] || { runcmd status aur; return; }
+	local pkg="$1";
+	local vrs=($(aur_exists $pkg));
+	[ ${#vrs[*]} -gt 0 ] || die "view_aur() there is no '$pkg' package.";
+	debug "${#vrs[*]}'${vrs[@]}'";
+	# same thing... using the last one...
+	tar xzf ${vrs[-1]} $pkg/PKGBUILD -O;
+	# TODO... switch on $2 version?
+}
+
 function view_usage() {
 	msg "'$AMI_PROG view git' is default.";
-	echo "Usage: $AMI_PROG view [git [tigargs]]";
+	echo "Usage: $AMI_PROG view [git [tigargs]|svn [pkg]|aur [pkg]]";
 	exit 3;
 }
 
@@ -21,6 +47,12 @@ case $1 in
 	git)
 			shift
 			view_git $* ;;
+	svn)
+			shift
+			view_svn $* ;;
+	aur)
+			shift
+			view_aur $* ;;
 	*)
 			view_git $* ;;
 esac

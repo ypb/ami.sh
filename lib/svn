@@ -5,16 +5,18 @@ load etc init
 
 # the logics a changing
 function svn_exists() {
-	[ -z "$1" ] && echo "";
+	local ret="";
+	[ -n "$1" ] || return;
 	local d="$AMI_SVND";
 	local pkg="$1";
-	local ret="";
 	for r in $SVN_REPOS; do
 		[ -d "$d/$r/$pkg/.svn" ] && {
 			ret+="$r";
 		}
 	done
 	echo "$ret";
+	# return proper status...too
+	[ "$ret" != "" ]; return;
 }
 # because get != update
 

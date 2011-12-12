@@ -42,9 +42,11 @@ debug "main() args: '$@'.";
 debug "main() cmd: '$1'.";
 #die;
 case $1 in
-	cmds)
+	-h|--help)
+		usage ;;
+	cm|cmds)
 		cmds ;;
-	init)
+	in|init)
 		shift
 		runcmd init $* ;;
 	*)
