@@ -24,7 +24,9 @@ function view_svn() {
 }
 
 function view_aur() {
-	[ -n "$1" ] || { runcmd status aur; return; }
+	# more useless but be consistent with view_svn()
+	[ -z "$1" ] && { cd $AMI_AURD && ls -1 | sort | sed 's,^,aur/,g'; return; }
+	# [ -n "$1" ] || { runcmd status aur; return; }
 	local pkg="$1";
 	local vrs=($(aur_exists $pkg));
 	[ ${#vrs[*]} -gt 0 ] || die "view_aur() there is no '$pkg' package.";
@@ -36,7 +38,7 @@ function view_aur() {
 
 function view_usage() {
 	msg "'$AMI_PROG view git' is default.";
-	echo "Usage: $AMI_PROG view [git [tigargs]|svn [pkg]|aur [pkg]]";
+	echo "Usage: $AMI_PROG view [git [tigargs]|svn [pkg]|aur [pkg]|all]";
 	exit 3;
 }
 
@@ -53,6 +55,9 @@ case $1 in
 	aur)
 			shift
 			view_aur $* ;;
+	all)
+			{ view_aur;
+			  view_svn; } | sed 's,^\([^/]*\)/\(.*\)$,\2/\1,g' | sort ;;
 	*)
 			view_git $* ;;
 esac
