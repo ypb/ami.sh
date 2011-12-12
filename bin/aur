@@ -1,7 +1,7 @@
 #!/bin/bash
 
 load lib ami
-load etc aur # AUR_CMD
+load etc general # AUR_CMD
 load lib aur
 
 # get pkg

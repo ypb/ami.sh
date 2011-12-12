@@ -1,0 +1,26 @@
+#!/bin/bash
+
+load lib ami
+load etc general # GIT_VIEWER
+
+function view_git() {
+	cd $AMI_GITD &&
+	  exec $GIT_VIEWER $@;
+}
+
+function view_usage() {
+	msg "'$AMI_PROG view git' is default.";
+	echo "Usage: $AMI_PROG view [git [tigargs]]";
+	exit 3;
+}
+
+# main()
+case $1 in
+	-h)
+			view_usage ;;
+	git)
+			shift
+			view_git $* ;;
+	*)
+			view_git $* ;;
+esac
