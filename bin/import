@@ -10,8 +10,8 @@ load lib aur
 #dbgargs "$@"
 
 function import_aur() {
-	echo "via AUR";
-	msg "AUR import being implemented, mostly 'aur get'ing it...";
+	echo "aur";
+	# msg "AUR import being implemented, mostly 'aur get'ing it...";
 	local b="p/$pkg/aur";
 	# be careful what we ask for (grep args in 'status git $pkg' may collide...
 	runcmd status git $pkg | grep -q "$b" && die "$b already present." 234;
@@ -20,7 +20,7 @@ function import_aur() {
 	# always try to get teh latest...
 	local vers=($(aur_exists $pkg));
 	[ ${#vers[*]} -gt 0 ] || die "import_aur() nothing to do." 235;
-	echo -e "# available versions (in modification)sic!(time order):\n";
+	echo -e "# available versions (in modification (sic!) time order):\n";
 	for v in ${vers[@]}; do
 		[[ "$v" =~ .*/"$pkg-"([^/]*)".tar.gz" ]] && echo "${BASH_REMATCH[1]}";
 	done
@@ -34,10 +34,10 @@ function import_aur() {
 	[ "$REPLY" = " " ] || die "Bye, then." $?;
 	echo "Okidoki.";
 
-	msg "(re-)generating GIT fast-import file for pkg($pkg) of repo(aur).";
+	msg "(re-)generating GIT fast-import file for 'aur/$pkg'.";
 	cd $AMI_TEMP/imports/aur/ || die "cd temp import failure." 1;
 	rm -f $pkg-fast-import;
-	aur_fast_import $pkg ${vers[@]} > $pkg-fast-import;
+	aur_fast_import $pkg ${vers[@]} 3> $pkg-fast-import;
 	# NOW
 	[ $? -eq 0 ] && {
 		msg "Importing into GIT.";
@@ -45,14 +45,15 @@ function import_aur() {
 		export GIT_DIR="$AMI_GITD/.git"; cat "$pkg-fast-import" | git fast-import --quiet --date-format=rfc2822; export -n GIT_DIR; } || {
 		msg "KABLOOM!";
 	}
-
 	# clean-up?
 	# rm -f $pkg-fast-import;
+	[ -f "$pkg-fast-import" ] && errmsg "leaving $AMI_TEMP/imports/aur/$pkg-fast-import behind, for now.";
+	runcmd status $pkg;
 }
 # NOT nice $pkg global...
 function import_svn() {
-	echo "via Arch Linux SVN"
-	msg "SVN import ALMOST really implemented, kabloom!"
+	echo "svn";
+	# msg "SVN import ALMOST really implemented, kabloom!";
 	local b="p/$pkg/arch"
 	runcmd status git $pkg | grep -q "$b" && die "$b already present." 234;
 	local repos=($(svn_exists $pkg))
@@ -73,7 +74,7 @@ function import_svn() {
 	for r in ${repos[@]}; do
 		log_file=$(svn_log $r $pkg)
 		[ -z "$log_file" ] && continue
-		msg "(re-)generating GIT fast-import file for pkg($pkg) of repo(arch/$r).";
+		msg "(re-)generating GIT fast-import file for 'arch/$r/$pkg'.";
 		cat $log_file | svn_collect_log_to fast-import $r $pkg $fi_file
 	done
 	msg "Importing into GIT.";
@@ -89,10 +90,12 @@ function import_svn() {
 	# clean up... but leave svn_export cache for sure, no point in redownloading
 	# and they pack good.
 	# rm -f $fi_file;
+	[ -f "$fi_file" ] && errmsg "leaving $fi_file behind, for now.";
+	runcmd status $pkg;
 }
 
 function import() {
-	echo -n "# importing $pkg "
+	echo -n "# $AMI_PROG import '$pkg' "
 	case $1 in
 		aur)
 			import_aur ;;

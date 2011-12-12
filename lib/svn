@@ -199,9 +199,11 @@ function svn_export_rev() {
 	local todir="$repo/r$rev"
 	[ -d "$todir" ] &&
 	  errmsg "svn_export_rev() $todir already present." ||
-	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" 1>&2;
+	  svn export -r$rev svn://$srv/$repo/$pkg "$todir" | grep '^Exported.*';
+	# 1>&2;
 	# yeah... we should do it like this, except THAT
-	[ $? -eq 0 ] && echo "$todir" >&2 || echo "" >&2;
+	# [ $? -eq 0 ] && echo "$todir" >&2 || echo "" >&2;
+	# unneeded, prolly until we rework it to work better
 }
 
 function writing-fi-files() {

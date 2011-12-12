@@ -81,28 +81,32 @@ function aur_fast_import() {
 
 		# YEAH, YEAH, YEAH assuming proper CWD
 		rm -rf "$pkg";
-		tar xf "$a";
+		tar xf "$a" && echo "Extracted version $version.";
 		FILES=($(find "$pkg" -type f))
-		for f in ${FILES[@]}; do
-			echo "blob";
-			echo "mark :$mark";
-			echo "data "$(stat -c %s "$f");
-			cat "$f";
+		{
+			for f in ${FILES[@]}; do
+				echo "blob";
+				echo "mark :$mark";
+				echo "data "$(stat -c %s "$f");
+				cat "$f";
 
-			echo "M "$(stat -c %a "$f")" :$mark $pkg/aur/"$(basename "$f") >> "$tmpafile";
+				echo "M "$(stat -c %a "$f")" :$mark $pkg/aur/"$(basename "$f") >> "$tmpafile";
 
-			mark+=1;
-		done
-		cat "$tmpafile";
-		echo
+				mark+=1;
+			done
+			cat "$tmpafile";
+			echo;
+		} 1>&3
 	done
 	rm -rf "$pkg";
 	rm -f "$tmpafile";
 
 	# BUT here this "shape" doesn't feel right... BUTT looks great in git tag -l... YAY
 	local tagname="aur@${version}#${pkg}";
-	echo "progress Creating lightweight tag '$tagname'";
-	echo "reset refs/tags/$tagname";
-	echo "from :$commit";
-	echo;
+	{
+		echo "progress Creating lightweight tag '$tagname'";
+		echo "reset refs/tags/$tagname";
+		echo "from :$commit";
+		echo;
+	} 1>&3
 }
